@@ -5,26 +5,24 @@
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:jobstage/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  testWidgets('Jobstage app smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(const JobstageApp());
+    
+    // Wait for animations to complete
+    await tester.pumpAndSettle();
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Verify that the app elements are displayed.
+    expect(find.text('Plateforme de mise en relation emploi et stage'), findsOneWidget);
+    expect(find.text('Je suis...'), findsOneWidget);
+    expect(find.text('Candidat'), findsOneWidget);
+    expect(find.text('Recruteur'), findsOneWidget);
+    expect(find.text('À propos de CENADI'), findsOneWidget);
+    expect(find.text('© 2024 CENADI - Tous droits réservés'), findsOneWidget);
   });
 }
