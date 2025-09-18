@@ -1,26 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'splash_screen.dart';
+import 'theme/theme_provider.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const JobstageApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class JobstageApp extends StatelessWidget {
+  const JobstageApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Jobstage App',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF2196F3),
-          brightness: Brightness.light,
-        ),
+    return ChangeNotifierProvider(
+      create: (context) => ThemeProvider()..loadTheme(),
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return MaterialApp(
+            title: 'JOBSTAGE - Plateforme de Recrutement',
+            theme: themeProvider.lightTheme,
+            darkTheme: themeProvider.darkTheme,
+            themeMode: themeProvider.isDarkMode
+                ? ThemeMode.dark
+                : ThemeMode.light,
+            home: const SplashScreen(),
+            debugShowCheckedModeBanner: false,
+          );
+        },
       ),
-      home: const SplashScreen(),
     );
   }
 }

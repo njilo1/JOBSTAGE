@@ -46,6 +46,15 @@ dependencies:
   
   # Shared preferences for local storage
   shared_preferences: ^2.2.2
+  
+  # Provider for state management
+  provider: ^6.1.1
+  
+  # File picker for document uploads
+  file_picker: ^8.0.0+1
+  
+  # Image picker for photo uploads
+  image_picker: ^1.0.7
 
 dev_dependencies:
   flutter_test:

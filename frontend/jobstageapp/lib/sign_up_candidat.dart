@@ -24,13 +24,12 @@ class _JobstageSignupScreenState extends State<JobstageSignupScreen> {
   final AuthService _authService = AuthService();
 
   Future<void> _register() async {
-    if (_nuiController.text.isEmpty ||
-        _nameController.text.isEmpty ||
+    if (_nameController.text.isEmpty ||
         _emailController.text.isEmpty ||
         _phoneController.text.isEmpty ||
         _passwordController.text.isEmpty ||
         _confirmPasswordController.text.isEmpty) {
-      _showErrorDialog('Veuillez remplir tous les champs');
+      _showErrorDialog('Veuillez remplir tous les champs obligatoires');
       return;
     }
 
@@ -178,21 +177,12 @@ class _JobstageSignupScreenState extends State<JobstageSignupScreen> {
                   // Subtitle
                   Center(
                     child: Text(
-                      'creez votre compte entreprise',
+                      'creez votre compte candidat',
                       style: TextStyle(fontSize: 15, color: Color(0xFF757575)),
                     ),
                   ),
 
                   SizedBox(height: 22),
-
-                  // NUI field
-                  _buildFormField(
-                    label: 'NUI*',
-                    hintText: 'Numéro d\'identification unique',
-                    controller: _nuiController,
-                  ),
-
-                  SizedBox(height: 11),
 
                   // Name field
                   _buildFormField(
@@ -208,6 +198,15 @@ class _JobstageSignupScreenState extends State<JobstageSignupScreen> {
                     label: 'Email*',
                     hintText: 'nom@service.com',
                     controller: _emailController,
+                  ),
+
+                  SizedBox(height: 11),
+
+                  // NUI field
+                  _buildFormField(
+                    label: 'NUI',
+                    hintText: 'Numéro d\'identification unique (optionnel)',
+                    controller: _nuiController,
                   ),
 
                   SizedBox(height: 11),

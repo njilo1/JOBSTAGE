@@ -10,12 +10,16 @@ class AuthService {
     if (Platform.isAndroid) {
       // Pour l'émulateur Android, utiliser 10.0.2.2
       // Pour le téléphone physique, utiliser l'IP de la machine
-      return 'http://10.0.2.2:8000/api';
-    } else {
-      // Pour iOS ou autres plateformes
       return 'http://192.168.100.61:8000/api';
+    } else {
+      // Pour le web et autres plateformes, utiliser localhost
+      return 'http://localhost:8000/api';
     }
   }
+
+  // URL de test hardcodée pour débogage
+  static String get testBaseUrl => 'http://192.168.100.61:8000/api';
+
   static const String tokenKey = 'auth_token';
   static const String userKey = 'user_data';
 
@@ -109,11 +113,19 @@ class AuthService {
     required String password,
   }) async {
     try {
+      final loginUrl = '$testBaseUrl/auth/login/';
+      print('Tentative de connexion avec: $email');
+      print('URL de connexion: $loginUrl');
+      print('Base URL: $testBaseUrl');
+
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/login/'),
+        Uri.parse(loginUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'username': email, 'password': password}),
       );
+
+      print('Réponse du serveur: ${response.statusCode}');
+      print('Corps de la réponse: ${response.body}');
 
       final data = jsonDecode(response.body);
 

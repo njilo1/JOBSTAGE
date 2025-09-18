@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'user_selection.dart';
 import 'services/auth_service.dart';
+import 'dashboard_screen.dart';
+import 'sign_up_candidat.dart' as candidat;
 
 class JobstageLoginScreen extends StatefulWidget {
   const JobstageLoginScreen({super.key});
@@ -36,9 +37,14 @@ class _JobstageLoginScreenState extends State<JobstageLoginScreen> {
 
       if (result['success']) {
         // Connexion réussie
-        _showSuccessDialog('Connexion réussie !');
-        // Ici vous pouvez naviguer vers l'écran principal
-        // Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => HomeScreen()));
+        if (mounted) {
+          _showSuccessDialog('Connexion réussie !');
+          // Naviguer vers le dashboard approprié selon le type d'utilisateur
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const DashboardScreen()),
+          );
+        }
       } else {
         _showErrorDialog(result['message'] ?? 'Erreur de connexion');
       }
@@ -492,7 +498,7 @@ class _JobstageLoginScreenState extends State<JobstageLoginScreen> {
                               Navigator.of(context).push(
                                 MaterialPageRoute(
                                   builder: (context) =>
-                                      const JobstageHomePage(),
+                                      const candidat.JobstageSignupScreen(),
                                 ),
                               );
                             },

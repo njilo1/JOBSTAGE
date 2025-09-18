@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'sign_up_candidat.dart' as candidat;
 import 'sign_up_recruteur.dart' as recruteur;
+import 'loginscreen.dart';
 
 void main() {
   runApp(const JobstageApp());
@@ -523,7 +523,7 @@ class _JobstageHomePageState extends State<JobstageHomePage>
     Navigator.of(context).push(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
-            candidat.JobstageSignupScreen(),
+            const JobstageLoginScreen(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           // Hero animation pour une transition fluide
           return Hero(
