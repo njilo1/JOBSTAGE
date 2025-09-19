@@ -262,6 +262,16 @@ class _JobstageSignupScreenState extends State<JobstageSignupScreen> {
                           });
                         },
                         activeColor: Color(0xFF2196F3),
+                        checkColor: Colors.white,
+                        fillColor: MaterialStateProperty.resolveWith<Color>((
+                          Set<MaterialState> states,
+                        ) {
+                          if (states.contains(MaterialState.selected)) {
+                            return Color(0xFF2196F3);
+                          }
+                          return Colors.transparent;
+                        }),
+                        side: BorderSide(color: Color(0xFF2196F3), width: 2),
                       ),
                       Expanded(
                         child: RichText(
@@ -536,7 +546,7 @@ class _JobstageSignupScreenState extends State<JobstageSignupScreen> {
           child: TextField(
             controller: controller,
             keyboardType: keyboardType,
-            style: TextStyle(fontSize: 16),
+            style: TextStyle(fontSize: 16, color: Colors.black),
             decoration: InputDecoration(
               hintText: hintText,
               hintStyle: TextStyle(color: Color(0xFF9E9E9E), fontSize: 15),
@@ -579,7 +589,7 @@ class _JobstageSignupScreenState extends State<JobstageSignupScreen> {
           child: TextField(
             controller: controller,
             obscureText: obscureText,
-            style: TextStyle(fontSize: 16),
+            style: TextStyle(fontSize: 16, color: Colors.black),
             decoration: InputDecoration(
               hintText: hintText,
               hintStyle: TextStyle(color: Color(0xFF9E9E9E), fontSize: 15),

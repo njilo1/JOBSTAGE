@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../utils/offer_status.dart';
 import 'screens/offers_screen.dart';
 import 'screens/applications_screen.dart';
 import 'screens/training_screen.dart';
@@ -7,6 +9,8 @@ import 'screens/favorites_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/companies_screen.dart';
+import 'services/auth_service.dart';
+import 'theme/theme_provider.dart';
 
 class AppColors {
   static const Color blueDark = Color(0xFF1E88E5);
@@ -47,7 +51,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0; // Accueil tab is active by default
 
   // Profile completion percentage - can be updated dynamically
-  double profileCompletionPercentage = 0.75; // 75%
+  double profileCompletionPercentage = 0.0;
+  String userName = 'Utilisateur';
+  String userGreeting = 'Bonjour!';
+  final AuthService _authService = AuthService();
 
   // Track favorite states for job cards
   Map<String, bool> favorites = {
@@ -61,6 +68,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     // Reset to Accueil when dashboard is initialized
     _selectedIndex = 0;
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    print('Dashboard: Chargement des données utilisateur...');
+    print('Dashboard: Token disponible: ${_authService.token != null}');
+    print(
+      'Dashboard: Utilisateur actuel: ${_authService.currentUser?.username}',
+    );
+
+    final result = await _authService.getProfile();
+    print('Dashboard: Résultat getProfile: $result');
+
+    if (result['success'] && mounted) {
+      setState(() {
+        if (result['user'] != null) {
+          final user = result['user'];
+          // Utiliser first_name s'il existe, sinon username
+          if (user.firstName?.isNotEmpty == true) {
+            userName = user.firstName!;
+            if (user.lastName?.isNotEmpty == true) {
+              userName += ' ${user.lastName!}';
+            }
+          } else {
+            userName = user.username;
+          }
+          userGreeting = 'Bonjour $userName!';
+          print('Dashboard: Nom utilisateur mis à jour: $userName');
+        }
+        if (result['profile'] != null) {
+          profileCompletionPercentage = result['profile'].completionPercentage;
+          print(
+            'Dashboard: Pourcentage de complétude: $profileCompletionPercentage',
+          );
+        }
+      });
+    } else {
+      print('Dashboard: Erreur lors du chargement: ${result['message']}');
+      // En cas d'erreur, garder les valeurs par défaut
+      setState(() {
+        userName = 'Utilisateur';
+        userGreeting = 'Bonjour!';
+        profileCompletionPercentage = 0.0;
+      });
+    }
   }
 
   void _onNavItemTapped(int index) {
@@ -628,160 +680,181 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.surfaceBg,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // App Header with gradient
-            _buildAppHeader(),
-            // Main content with scrolling
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
-                child: Column(
-                  children: [
-                    // Profile completion card (below header)
-                    _buildProfileCompletionCard(),
-                    const SizedBox(height: 25),
-                    _buildQuickActionsSection(),
-                    const SizedBox(height: 25),
-                    _buildRecommendedSection(),
-                    const SizedBox(height: 25),
-                    _buildRecentActivitySection(),
-                  ],
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return Scaffold(
+          backgroundColor: themeProvider.isDarkMode
+              ? const Color(0xFF000B1A)
+              : AppColors.surfaceBg,
+          body: SafeArea(
+            child: Column(
+              children: [
+                // App Header with gradient
+                _buildAppHeader(),
+                // Main content with scrolling
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
+                    child: Column(
+                      children: [
+                        // Profile completion card (below header)
+                        _buildProfileCompletionCard(),
+                        const SizedBox(height: 25),
+                        _buildQuickActionsSection(),
+                        const SizedBox(height: 25),
+                        _buildRecommendedSection(),
+                        const SizedBox(height: 25),
+                        _buildRecentActivitySection(),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: _buildBottomNavigation(),
+          ),
+          bottomNavigationBar: _buildBottomNavigation(),
+        );
+      },
     );
   }
 
   Widget _buildAppHeader() {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.blueDark, AppColors.blueGradientEnd],
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(25),
-          bottomRight: Radius.circular(25),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          20,
-          0,
-          20,
-          10,
-        ), // Espace réduit pour un header plus compact
-        child: Column(
-          children: [
-            // Header top row with logo and icons
-            Transform.translate(
-              offset: const Offset(
-                0,
-                -5,
-              ), // Offset réduit pour éviter l'overflow
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Logo
-                  Image.asset(
-                    'assets/images/jobstage_logo.png',
-                    height: 100, // Logo taille 100
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Text(
-                        'JOBSTAGE',
-                        style: GoogleFonts.roboto(
-                          fontSize: 50,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                        ),
-                      );
-                    },
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return Container(
+          decoration: BoxDecoration(
+            gradient: themeProvider.isDarkMode
+                ? const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF00BCD4), // Cyan bleu
+                      Color(0xFF2196F3), // Bleu
+                      Color(0xFF4CAF50), // Vert
+                    ],
+                    stops: [0.0, 0.5, 1.0],
+                  )
+                : const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [AppColors.blueDark, AppColors.blueGradientEnd],
                   ),
-                  // Icon group
-                  Padding(
-                    padding: const EdgeInsets.only(
-                      top: 0,
-                    ), // Supprime l'espace au-dessus des icônes
-                    child: Row(
-                      children: [
-                        GestureDetector(
-                          onTap: () => _showSupportDialog(),
-                          child: _buildHeaderIcon(Icons.support_agent, 0),
-                        ),
-                        const SizedBox(width: 10),
-                        GestureDetector(
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const ProfileScreen(),
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(25),
+              bottomRight: Radius.circular(25),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              20,
+              0,
+              20,
+              10,
+            ), // Espace réduit pour un header plus compact
+            child: Column(
+              children: [
+                // Header top row with logo and icons
+                Transform.translate(
+                  offset: const Offset(
+                    0,
+                    -5,
+                  ), // Offset réduit pour éviter l'overflow
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Logo
+                      Image.asset(
+                        'assets/images/jobstage_logo.png',
+                        height: 100, // Logo taille 100
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Text(
+                            'JOBSTAGE',
+                            style: GoogleFonts.roboto(
+                              fontSize: 50,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
                             ),
-                          ),
-                          child: _buildHeaderIcon(Icons.person, 0),
+                          );
+                        },
+                      ),
+                      // Icon group
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          top: 0,
+                        ), // Supprime l'espace au-dessus des icônes
+                        child: Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () => _showSupportDialog(),
+                              child: _buildHeaderIcon(Icons.support_agent, 0),
+                            ),
+                            const SizedBox(width: 10),
+                            GestureDetector(
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ProfileScreen(),
+                                ),
+                              ),
+                              child: _buildHeaderIcon(Icons.person, 0),
+                            ),
+                            const SizedBox(width: 10),
+                            GestureDetector(
+                              onTap: () => _showNotificationsDialog(),
+                              child: _buildHeaderIcon(Icons.notifications, 3),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 10),
-                        GestureDetector(
-                          onTap: () => _showNotificationsDialog(),
-                          child: _buildHeaderIcon(Icons.notifications, 3),
+                      ),
+                    ],
+                  ),
+                ),
+                // User greeting - descendu légèrement pour un meilleur espacement
+                Transform.translate(
+                  offset: const Offset(
+                    0,
+                    -10,
+                  ), // Offset réduit pour éviter l'overflow
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          userGreeting,
+                          style: GoogleFonts.roboto(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          'Trouvons votre prochain emploi',
+                          style: GoogleFonts.roboto(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white.withValues(alpha: 0.9),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-            // User greeting - descendu légèrement pour un meilleur espacement
-            Transform.translate(
-              offset: const Offset(
-                0,
-                -10,
-              ), // Offset réduit pour éviter l'overflow
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Bonjour Marie!',
-                      style: GoogleFonts.roboto(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      'Trouvons votre prochain emploi',
-                      style: GoogleFonts.roboto(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white.withValues(alpha: 0.9),
-                      ),
-                    ),
-                  ],
                 ),
-              ),
+                // Search bar - descendue légèrement pour un meilleur espacement
+                Transform.translate(
+                  offset: const Offset(
+                    0,
+                    -5,
+                  ), // Offset réduit pour éviter l'overflow
+                  child: _buildSearchBar(),
+                ),
+              ],
             ),
-            // Search bar - descendue légèrement pour un meilleur espacement
-            Transform.translate(
-              offset: const Offset(
-                0,
-                -5,
-              ), // Offset réduit pour éviter l'overflow
-              child: _buildSearchBar(),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -839,6 +912,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         child: TextField(
           enabled: false,
+          style: GoogleFonts.roboto(fontSize: 14, color: Colors.black),
           decoration: InputDecoration(
             hintText: 'Rechercher une offre d\'emploi ou un stage...',
             hintStyle: GoogleFonts.roboto(
@@ -859,7 +933,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               vertical: 15,
             ),
           ),
-          style: GoogleFonts.roboto(fontSize: 16, color: AppColors.primaryText),
         ),
       ),
     );
@@ -1122,6 +1195,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           '92%',
           AppColors.greenDark,
           isJob: true,
+          status: 'En cours',
         ),
         const SizedBox(height: 10),
         _buildJobCard(
@@ -1133,6 +1207,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           '89%',
           AppColors.greenDark,
           isJob: true,
+          status: 'En pause',
         ),
         const SizedBox(height: 10),
         _buildJobCard(
@@ -1144,6 +1219,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           '87%',
           AppColors.blueDark,
           isJob: false,
+          status: 'Expirée',
         ),
       ],
     );
@@ -1158,6 +1234,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     String matchScore,
     Color borderColor, {
     required bool isJob,
+    String? status,
   }) {
     return GestureDetector(
       onTap: () => _showJobDetails(
@@ -1204,6 +1281,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      if (status != null) ...[
+                        const SizedBox(height: 6),
+                        _buildStatusBadge(status),
+                      ],
                       const SizedBox(height: 4),
                       Text(
                         company,
@@ -1465,6 +1546,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildDivider() {
     return Container(height: 1, color: AppColors.dividerColor);
+  }
+
+  Widget _buildStatusBadge(String status) {
+    OfferStatus offerStatus;
+    switch (status.toLowerCase()) {
+      case 'en cours':
+      case 'active':
+        offerStatus = OfferStatus.active;
+        break;
+      case 'en pause':
+      case 'paused':
+        offerStatus = OfferStatus.paused;
+        break;
+      case 'expirée':
+      case 'expired':
+        offerStatus = OfferStatus.expired;
+        break;
+      default:
+        offerStatus = OfferStatus.active;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: OfferStatusHelper.getStatusBackgroundColor(offerStatus),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: OfferStatusHelper.getStatusColor(offerStatus),
+          width: 1,
+        ),
+      ),
+      child: Text(
+        OfferStatusHelper.getStatusText(offerStatus),
+        style: GoogleFonts.roboto(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: OfferStatusHelper.getStatusColor(offerStatus),
+        ),
+      ),
+    );
   }
 
   Widget _buildBottomNavigation() {

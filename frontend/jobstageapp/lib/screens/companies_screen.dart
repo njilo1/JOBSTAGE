@@ -12,9 +12,16 @@ class CompaniesScreen extends StatefulWidget {
 
 class _CompaniesScreenState extends State<CompaniesScreen> {
   String selectedFilter = 'Toutes';
-  final List<String> filters = ['Toutes', 'Technologie', 'Finance', 'Santé', 'Éducation', 'Commerce'];
+  final List<String> filters = [
+    'Toutes',
+    'Technologie',
+    'Finance',
+    'Santé',
+    'Éducation',
+    'Commerce',
+  ];
   final TextEditingController searchController = TextEditingController();
-  
+
   // Données des entreprises
   final List<Map<String, dynamic>> companies = [
     {
@@ -99,20 +106,29 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
 
   List<Map<String, dynamic>> get filteredCompanies {
     List<Map<String, dynamic>> filtered = companies;
-    
+
     // Filtre par industrie
     if (selectedFilter != 'Toutes') {
-      filtered = filtered.where((company) => company['industry'] == selectedFilter).toList();
+      filtered = filtered
+          .where((company) => company['industry'] == selectedFilter)
+          .toList();
     }
-    
+
     // Filtre par recherche
     if (searchController.text.isNotEmpty) {
-      filtered = filtered.where((company) => 
-        company['name'].toLowerCase().contains(searchController.text.toLowerCase()) ||
-        company['description'].toLowerCase().contains(searchController.text.toLowerCase())
-      ).toList();
+      filtered = filtered
+          .where(
+            (company) =>
+                company['name'].toLowerCase().contains(
+                  searchController.text.toLowerCase(),
+                ) ||
+                company['description'].toLowerCase().contains(
+                  searchController.text.toLowerCase(),
+                ),
+          )
+          .toList();
     }
-    
+
     return filtered;
   }
 
@@ -154,11 +170,21 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
                   ),
                   child: TextField(
                     controller: searchController,
+                    style: GoogleFonts.roboto(
+                      fontSize: 16,
+                      color: Colors.black,
+                    ),
                     decoration: InputDecoration(
                       hintText: 'Rechercher une entreprise...',
-                      prefixIcon: const Icon(Icons.search, color: AppColors.blueDark),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: AppColors.blueDark,
+                      ),
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
                     onChanged: (value) => setState(() {}),
                   ),
@@ -182,17 +208,32 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
                             });
                           },
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
-                              color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.2),
+                              color: isSelected
+                                  ? Colors.white
+                                  : Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(20),
-                              border: isSelected ? null : Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                              border: isSelected
+                                  ? null
+                                  : Border.all(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.3,
+                                      ),
+                                    ),
                             ),
                             child: Text(
                               filter,
                               style: GoogleFonts.roboto(
-                                color: isSelected ? AppColors.blueDark : Colors.white,
-                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                color: isSelected
+                                    ? AppColors.blueDark
+                                    : Colors.white,
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
                                 fontSize: 12,
                               ),
                             ),
@@ -302,7 +343,11 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
                               Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.location_on, size: 14, color: AppColors.secondaryText),
+                                  const Icon(
+                                    Icons.location_on,
+                                    size: 14,
+                                    color: AppColors.secondaryText,
+                                  ),
                                   const SizedBox(width: 2),
                                   Flexible(
                                     child: Text(
@@ -319,7 +364,11 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
                               Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.people, size: 14, color: AppColors.secondaryText),
+                                  const Icon(
+                                    Icons.people,
+                                    size: 14,
+                                    color: AppColors.secondaryText,
+                                  ),
                                   const SizedBox(width: 2),
                                   Flexible(
                                     child: Text(
@@ -342,14 +391,17 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
                     GestureDetector(
                       onTap: () => _toggleFollow(company),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
-                          color: company['isFollowing'] 
-                              ? AppColors.blueDark 
+                          color: company['isFollowing']
+                              ? AppColors.blueDark
                               : AppColors.blueDark.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(16),
-                          border: company['isFollowing'] 
-                              ? null 
+                          border: company['isFollowing']
+                              ? null
                               : Border.all(color: AppColors.blueDark),
                         ),
                         child: Row(
@@ -358,7 +410,9 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
                             Icon(
                               company['isFollowing'] ? Icons.check : Icons.add,
                               size: 14,
-                              color: company['isFollowing'] ? Colors.white : AppColors.blueDark,
+                              color: company['isFollowing']
+                                  ? Colors.white
+                                  : AppColors.blueDark,
                             ),
                             const SizedBox(width: 2),
                             Text(
@@ -366,7 +420,9 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
                               style: GoogleFonts.roboto(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
-                                color: company['isFollowing'] ? Colors.white : AppColors.blueDark,
+                                color: company['isFollowing']
+                                    ? Colors.white
+                                    : AppColors.blueDark,
                               ),
                             ),
                           ],
@@ -393,8 +449,16 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
                   spacing: 12,
                   runSpacing: 8,
                   children: [
-                    _buildStatItem(Icons.people, '${company['followers']}', AppColors.blueDark),
-                    _buildStatItem(Icons.work, '${company['offersCount']}', AppColors.greenDark),
+                    _buildStatItem(
+                      Icons.people,
+                      '${company['followers']}',
+                      AppColors.blueDark,
+                    ),
+                    _buildStatItem(
+                      Icons.work,
+                      '${company['offersCount']}',
+                      AppColors.greenDark,
+                    ),
                     const Spacer(),
                     Text(
                       company['lastActivity'],
@@ -441,7 +505,10 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
         company['followers']++;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Vous suivez maintenant ${company['name']}', style: GoogleFonts.roboto()),
+            content: Text(
+              'Vous suivez maintenant ${company['name']}',
+              style: GoogleFonts.roboto(),
+            ),
             backgroundColor: AppColors.greenDark,
           ),
         );
@@ -449,7 +516,10 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
         company['followers']--;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Vous ne suivez plus ${company['name']}', style: GoogleFonts.roboto()),
+            content: Text(
+              'Vous ne suivez plus ${company['name']}',
+              style: GoogleFonts.roboto(),
+            ),
             backgroundColor: Colors.orange,
           ),
         );

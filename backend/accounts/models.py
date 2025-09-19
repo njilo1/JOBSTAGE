@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
+from django.conf import settings
 
 
 class UserManager(BaseUserManager):
@@ -52,3 +53,54 @@ class User(AbstractUser):
 
     def __str__(self):
         return f"{self.username} ({self.get_user_type_display()})"
+
+
+class CandidateProfile(models.Model):
+    """Profil candidat avec informations supplémentaires"""
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='candidate_profile')
+    nui = models.CharField(max_length=20, unique=True, blank=True, null=True)
+    profile_photo = models.ImageField(upload_to='profile_photos/', blank=True, null=True)
+    cv_file = models.FileField(upload_to='cv_files/', blank=True, null=True)
+    job_title = models.CharField(max_length=100, blank=True, null=True)
+    experience_years = models.IntegerField(default=0, blank=True, null=True)
+    skills = models.TextField(blank=True, null=True)  # Comma separated skills
+    bio = models.TextField(blank=True, null=True)
+    expected_salary = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    location = models.CharField(max_length=100, blank=True, null=True)
+    contract_type = models.CharField(max_length=50, blank=True, null=True)
+    
+    # Préférences d'emploi
+    preferred_job_type = models.CharField(max_length=50, blank=True, null=True)
+    experience_level = models.CharField(max_length=50, blank=True, null=True)
+    salary_range_min = models.IntegerField(blank=True, null=True)
+    salary_range_max = models.IntegerField(blank=True, null=True)
+    preferred_work_location = models.CharField(max_length=100, blank=True, null=True)
+    remote_work = models.BooleanField(default=False)
+    preferred_industries = models.TextField(blank=True, null=True)  # Comma separated industries
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Profile of {self.user.username}"
+
+    @property
+    def completion_percentage(self):
+        """Calcule le pourcentage de complétude du profil"""
+        fields = [
+            self.nui, self.profile_photo, self.cv_file, self.job_title,
+            self.experience_years, self.skills, self.bio,
+            self.expected_salary, self.location, self.contract_type
+        ]
+        completed_fields = sum(1 for field in fields if field is not None and (isinstance(field, str) and field.strip() != '' or not isinstance(field, str)))
+        
+        # Ajouter les champs utilisateur qui font partie de la complétude du profil
+        user_fields = [
+            self.user.first_name, self.user.last_name, self.user.phone
+        ]
+        completed_user_fields = sum(1 for field in user_fields if field is not None and field.strip() != '')
+
+        total_fields = len(fields) + len(user_fields)
+        if total_fields == 0:
+            return 0.0
+        return (completed_fields + completed_user_fields) / total_fields

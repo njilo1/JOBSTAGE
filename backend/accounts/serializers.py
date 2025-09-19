@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
-from .models import User
+from .models import User, CandidateProfile
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -72,7 +72,7 @@ class UserSerializer(serializers.ModelSerializer):
     """Serializer pour les informations utilisateur"""
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'phone', 'user_type', 'is_verified', 'date_joined')
+        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'phone', 'user_type', 'is_verified', 'date_joined')
         read_only_fields = ('id', 'date_joined')
 
 
@@ -92,3 +92,14 @@ class PasswordChangeSerializer(serializers.Serializer):
         if not user.check_password(value):
             raise serializers.ValidationError("Ancien mot de passe incorrect.")
         return value
+
+
+class CandidateProfileSerializer(serializers.ModelSerializer):
+    """Serializer pour le profil candidat"""
+    user = UserSerializer(read_only=True)
+    completion_percentage = serializers.ReadOnlyField()
+    
+    class Meta:
+        model = CandidateProfile
+        fields = '__all__'
+        read_only_fields = ('id', 'user', 'created_at', 'updated_at')

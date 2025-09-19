@@ -2,11 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import 'dart:io';
 import '../dashboard_screen.dart';
 import 'job_preferences_screen.dart';
 import 'favorites_screen.dart';
 import 'applications_screen.dart';
+import 'cv_skills_screen.dart';
+import '../services/auth_service.dart';
+import '../theme/theme_provider.dart';
+import '../theme/adaptive_colors.dart';
+import '../widgets/adaptive_card.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -17,31 +23,17 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool isEditing = false;
+  bool isLoading = false;
+  final AuthService _authService = AuthService();
 
-  final TextEditingController _nameController = TextEditingController(
-    text: 'Marie Kamdem',
-  );
-  final TextEditingController _emailController = TextEditingController(
-    text: 'marie.kamdem@email.com',
-  );
-  final TextEditingController _phoneController = TextEditingController(
-    text: '+237 6XX XXX XXX',
-  );
-  final TextEditingController _bioController = TextEditingController(
-    text:
-        'Développeuse passionnée par les technologies mobiles avec 2 ans d\'expérience en Flutter.',
-  );
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _bioController = TextEditingController();
 
   // CV and Skills data
-  List<String> uploadedCVs = ['CV_Marie_Kamdem_2024.pdf'];
-  List<String> skills = [
-    'Flutter',
-    'Dart',
-    'Firebase',
-    'Git',
-    'API REST',
-    'UI/UX Design',
-  ];
+  List<String> uploadedCVs = [];
+  List<String> skills = [];
   final TextEditingController _skillController = TextEditingController();
 
   // Préférences d'emploi
@@ -54,7 +46,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // Photo de profil
   File? _profileImage;
+  String? _profileImageUrl;
   final ImagePicker _imagePicker = ImagePicker();
+
+  // Pourcentage de complétude du profil
+  double profileCompletionPercentage = 0.0;
 
   // Paramètres de confidentialité
   bool profileVisible = true;
@@ -184,384 +180,614 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? selectedLocation = 'Yaoundé';
 
   @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    print('Profil: Chargement des données utilisateur...');
+    print('Profil: Token disponible: ${_authService.token != null}');
+    print('Profil: Utilisateur actuel: ${_authService.currentUser?.username}');
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final result = await _authService.getProfile();
+      print('Profil: Résultat getProfile: $result');
+
+      if (result['success'] && mounted) {
+        final user = result['user'];
+        final profile = result['profile'];
+        print('Profil: Données utilisateur: ${user.username}');
+        print('Profil: Données profil: ${profile?.bio}');
+
+        setState(() {
+          _nameController.text = user.firstName?.isNotEmpty == true
+              ? '${user.firstName} ${user.lastName ?? ''}'.trim()
+              : user.username;
+          _emailController.text = user.email;
+          _phoneController.text = user.phone ?? '';
+
+          if (profile != null) {
+            _bioController.text = profile.bio ?? '';
+            selectedLocation = profile.location ?? 'Yaoundé';
+
+            // Charger le pourcentage de complétude
+            profileCompletionPercentage = profile.completionPercentage ?? 0.0;
+            print(
+              'Profil: Pourcentage de complétude chargé: $profileCompletionPercentage',
+            );
+
+            // Charger la photo de profil si elle existe
+            if (profile.profilePhoto != null &&
+                profile.profilePhoto!.isNotEmpty) {
+              // Construire l'URL complète de la photo
+              if (profile.profilePhoto!.startsWith('http')) {
+                _profileImageUrl = profile.profilePhoto;
+              } else {
+                _profileImageUrl =
+                    'http://192.168.100.61:8000${profile.profilePhoto}';
+              }
+            }
+            if (profile.skills != null && profile.skills!.isNotEmpty) {
+              skills = profile.skills!
+                  .split(',')
+                  .map((s) => s.trim())
+                  .where((s) => s.isNotEmpty)
+                  .toList();
+            }
+            // Charger les CV existants
+            if (profile.cvFile != null && profile.cvFile!.isNotEmpty) {
+              uploadedCVs = [profile.cvFile!.split('/').last];
+            }
+          }
+
+          isLoading = false;
+        });
+      } else {
+        if (mounted) {
+          setState(() {
+            isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      print('Erreur lors du chargement des données: $e');
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  // Méthode pour générer les initiales à partir du nom
+  String _getInitials() {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      // Utiliser le nom de l'utilisateur actuel si disponible
+      final currentUser = _authService.currentUser;
+      if (currentUser != null) {
+        final userName = currentUser.firstName?.isNotEmpty == true
+            ? '${currentUser.firstName} ${currentUser.lastName ?? ''}'.trim()
+            : currentUser.username;
+        return _generateInitialsFromName(userName);
+      }
+      return 'U'; // Utilisateur par défaut
+    }
+
+    return _generateInitialsFromName(name);
+  }
+
+  String _generateInitialsFromName(String name) {
+    if (name.isEmpty) return 'U';
+
+    final parts = name.split(' ');
+    if (parts.length == 1) {
+      return parts[0].substring(0, 1).toUpperCase();
+    } else {
+      return '${parts[0].substring(0, 1)}${parts[1].substring(0, 1)}'
+          .toUpperCase();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.surfaceBg,
-      appBar: AppBar(
-        backgroundColor: AppColors.blueDark,
-        foregroundColor: Colors.white,
-        title: Text(
-          'Mon Profil',
-          style: GoogleFonts.roboto(
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
-        ),
-        elevation: 0,
-        actions: [
-          IconButton(
-            onPressed: () {
-              setState(() {
-                isEditing = !isEditing;
-              });
-            },
-            icon: Icon(isEditing ? Icons.check : Icons.edit),
-            tooltip: isEditing ? 'Sauvegarder' : 'Modifier',
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Enhanced Profile header with gradient
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.blueDark, AppColors.blueGradientEnd],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        if (isLoading) {
+          return Scaffold(
+            backgroundColor: AdaptiveColors.getBackground(
+              themeProvider.isDarkMode,
+            ),
+            appBar: AppBar(
+              backgroundColor: AdaptiveColors.getPrimary(
+                themeProvider.isDarkMode,
+              ),
+              foregroundColor: Colors.white,
+              title: Text(
+                'Mon Profil',
+                style: GoogleFonts.roboto(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+            ),
+            body: Center(
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Profile picture with enhanced design
-                  Stack(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.3),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: CircleAvatar(
-                          radius: 65,
-                          backgroundColor: Colors.white,
-                          child: CircleAvatar(
-                            radius: 60,
-                            backgroundColor: AppColors.favorisIconColor,
-                            backgroundImage: _profileImage != null
-                                ? FileImage(_profileImage!)
-                                : null,
-                            child: _profileImage == null
-                                ? Text(
-                                    'MK',
-                                    style: GoogleFonts.roboto(
-                                      fontSize: 40,
-                                      fontWeight: FontWeight.w900,
-                                      color: Colors.white,
-                                      letterSpacing: 1,
-                                    ),
-                                  )
-                                : null,
-                          ),
-                        ),
-                      ),
-                      if (isEditing)
-                        Positioned(
-                          bottom: 5,
-                          right: 5,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [Colors.white, Colors.grey.shade100],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.2),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: IconButton(
-                              onPressed: _showImagePickerOptions,
-                              icon: const Icon(
-                                Icons.camera_alt,
-                                color: AppColors.blueDark,
-                              ),
-                              tooltip: 'Changer la photo de profil',
-                            ),
-                          ),
-                        ),
-                    ],
+                  CircularProgressIndicator(
+                    color: AdaptiveColors.getPrimary(themeProvider.isDarkMode),
                   ),
-                  const SizedBox(height: 24),
-                  Text(
-                    _nameController.text,
-                    style: GoogleFonts.roboto(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Text(
-                      'Développeuse Flutter',
-                      style: GoogleFonts.roboto(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildProfileBadge(
-                        Icons.location_on,
-                        selectedLocation ?? 'Yaoundé',
-                      ),
-                      const SizedBox(width: 16),
-                      _buildProfileBadge(Icons.work, '2+ ans d\'expérience'),
-                    ],
+                  SizedBox(height: 16),
+                  AdaptiveText(
+                    'Chargement de votre profil...',
+                    style: GoogleFonts.roboto(fontSize: 16),
                   ),
                 ],
               ),
             ),
-            // Enhanced Profile completion with animations
-            const SizedBox(height: 20), // Espacement pour détacher du header
-            TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0.0, end: 1.0),
-              duration: const Duration(milliseconds: 600),
-              curve: Curves.easeOut,
-              builder: (context, value, child) {
-                return Transform.translate(
-                  offset: Offset(0, 20 * (1 - value)),
-                  child: Opacity(
-                    opacity: value,
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 20),
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.white,
-                            AppColors.surfaceBg.withValues(alpha: 0.5),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.15),
-                            blurRadius: 32,
-                            offset: const Offset(0, 16),
-                          ),
-                        ],
-                      ),
-                      child: Column(
+          );
+        }
+
+        return Scaffold(
+          backgroundColor: AdaptiveColors.getBackground(
+            themeProvider.isDarkMode,
+          ),
+          appBar: AppBar(
+            backgroundColor: AdaptiveColors.getPrimary(
+              themeProvider.isDarkMode,
+            ),
+            foregroundColor: Colors.white,
+            title: Text(
+              'Mon Profil',
+              style: GoogleFonts.roboto(
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+            elevation: 0,
+            actions: [
+              IconButton(
+                onPressed: () async {
+                  if (isEditing) {
+                    // Sauvegarder les modifications
+                    await _saveProfile();
+                  } else {
+                    // Activer le mode édition
+                    setState(() {
+                      isEditing = true;
+                    });
+                  }
+                },
+                icon: Icon(isEditing ? Icons.check : Icons.edit),
+                tooltip: isEditing ? 'Sauvegarder' : 'Modifier',
+              ),
+            ],
+          ),
+          body: SingleChildScrollView(
+            child: Column(
+              children: [
+                // Enhanced Profile header with gradient
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.blueDark, AppColors.blueGradientEnd],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+                  child: Column(
+                    children: [
+                      // Profile picture with enhanced design
+                      Stack(
                         children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
+                          Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.3),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 10),
+                                ),
+                              ],
+                            ),
+                            child: CircleAvatar(
+                              radius: 65,
+                              backgroundColor: Colors.white,
+                              child: CircleAvatar(
+                                radius: 60,
+                                backgroundColor: AppColors.favorisIconColor,
+                                backgroundImage: _profileImage != null
+                                    ? FileImage(_profileImage!)
+                                    : _profileImageUrl != null
+                                    ? NetworkImage(_profileImageUrl!)
+                                    : null,
+                                child:
+                                    (_profileImage == null &&
+                                        _profileImageUrl == null)
+                                    ? Text(
+                                        _getInitials(),
+                                        style: GoogleFonts.roboto(
+                                          fontSize: 40,
+                                          fontWeight: FontWeight.w900,
+                                          color: Colors.white,
+                                          letterSpacing: 1,
+                                        ),
+                                      )
+                                    : null,
+                              ),
+                            ),
+                          ),
+                          if (isEditing)
+                            Positioned(
+                              bottom: 5,
+                              right: 5,
+                              child: Container(
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: [
-                                      AppColors.greenDark,
-                                      AppColors.greenDark.withValues(
-                                        alpha: 0.8,
-                                      ),
+                                      Colors.white,
+                                      Colors.grey.shade100,
                                     ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                   ),
-                                  borderRadius: BorderRadius.circular(12),
+                                  shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppColors.greenDark.withValues(
-                                        alpha: 0.3,
+                                      color: Colors.black.withValues(
+                                        alpha: 0.2,
                                       ),
                                       blurRadius: 8,
-                                      offset: const Offset(0, 4),
+                                      offset: const Offset(0, 2),
                                     ),
                                   ],
                                 ),
-                                child: const Icon(
-                                  Icons.trending_up,
-                                  color: Colors.white,
-                                  size: 20,
+                                child: IconButton(
+                                  onPressed: _showImagePickerOptions,
+                                  icon: const Icon(
+                                    Icons.camera_alt,
+                                    color: AppColors.blueDark,
+                                  ),
+                                  tooltip: 'Changer la photo de profil',
                                 ),
                               ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Complétude du profil',
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        _nameController.text,
+                        style: GoogleFonts.roboto(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.email, size: 16, color: Colors.white),
+                            SizedBox(width: 8),
+                            Text(
+                              _emailController.text.isNotEmpty
+                                  ? _emailController.text
+                                  : 'Email non renseigné',
+                              style: GoogleFonts.roboto(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildProfileBadge(
+                            Icons.location_on,
+                            selectedLocation ?? 'Yaoundé',
+                          ),
+                          const SizedBox(width: 16),
+                          _buildProfileBadge(
+                            Icons.phone,
+                            _formatPhoneNumber(_phoneController.text),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                // Enhanced Profile completion with animations
+                const SizedBox(
+                  height: 20,
+                ), // Espacement pour détacher du header
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.0, end: 1.0),
+                  duration: const Duration(milliseconds: 600),
+                  curve: Curves.easeOut,
+                  builder: (context, value, child) {
+                    return Transform.translate(
+                      offset: Offset(0, 20 * (1 - value)),
+                      child: Opacity(
+                        opacity: value,
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 20),
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.white,
+                                AppColors.surfaceBg.withValues(alpha: 0.5),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.15),
+                                blurRadius: 32,
+                                offset: const Offset(0, 16),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          AppColors.greenDark,
+                                          AppColors.greenDark.withValues(
+                                            alpha: 0.8,
+                                          ),
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppColors.greenDark.withValues(
+                                            alpha: 0.3,
+                                          ),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: const Icon(
+                                      Icons.trending_up,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Complétude du profil',
+                                          style: GoogleFonts.roboto(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.primaryText,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          profileCompletionPercentage >= 0.8
+                                              ? 'Excellent progrès !'
+                                              : profileCompletionPercentage >=
+                                                    0.5
+                                              ? 'Bon progrès !'
+                                              : 'Continuez !',
+                                          style: GoogleFonts.roboto(
+                                            fontSize: 13,
+                                            color:
+                                                profileCompletionPercentage >=
+                                                    0.8
+                                                ? AppColors.greenDark
+                                                : profileCompletionPercentage >=
+                                                      0.5
+                                                ? AppColors.orangeDark
+                                                : AppColors.blueDark,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          (profileCompletionPercentage >= 0.8
+                                                  ? AppColors.greenDark
+                                                  : profileCompletionPercentage >=
+                                                        0.5
+                                                  ? AppColors.orangeDark
+                                                  : AppColors.blueDark)
+                                              .withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color:
+                                            (profileCompletionPercentage >= 0.8
+                                                    ? AppColors.greenDark
+                                                    : profileCompletionPercentage >=
+                                                          0.5
+                                                    ? AppColors.orangeDark
+                                                    : AppColors.blueDark)
+                                                .withValues(alpha: 0.2),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '${(profileCompletionPercentage * 100).round()}%',
                                       style: GoogleFonts.roboto(
                                         fontSize: 18,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.primaryText,
+                                        fontWeight: FontWeight.w800,
+                                        color:
+                                            profileCompletionPercentage >= 0.8
+                                            ? AppColors.greenDark
+                                            : profileCompletionPercentage >= 0.5
+                                            ? AppColors.orangeDark
+                                            : AppColors.blueDark,
                                       ),
                                     ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Excellent progrès !',
-                                      style: GoogleFonts.roboto(
-                                        fontSize: 13,
-                                        color: AppColors.greenDark,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
+                              const SizedBox(height: 16),
+                              TweenAnimationBuilder<double>(
+                                tween: Tween(
+                                  begin: 0.0,
+                                  end: profileCompletionPercentage,
                                 ),
+                                duration: const Duration(milliseconds: 1500),
+                                curve: Curves.easeInOut,
+                                builder: (context, value, child) {
+                                  return Container(
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.surfaceBg,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(4),
+                                      child: LinearProgressIndicator(
+                                        value: value,
+                                        backgroundColor: Colors.transparent,
+                                        valueColor: AlwaysStoppedAnimation<Color>(
+                                          profileCompletionPercentage >= 0.8
+                                              ? AppColors.greenDark
+                                              : profileCompletionPercentage >=
+                                                    0.5
+                                              ? AppColors.orangeDark
+                                              : AppColors.blueDark,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                  color: AppColors.greenDark.withValues(
-                                    alpha: 0.1,
+                                  color: AppColors.blueDark.withValues(
+                                    alpha: 0.05,
                                   ),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: AppColors.greenDark.withValues(
-                                      alpha: 0.2,
+                                    color: AppColors.blueDark.withValues(
+                                      alpha: 0.1,
                                     ),
                                   ),
                                 ),
-                                child: Text(
-                                  '75%',
-                                  style: GoogleFonts.roboto(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.greenDark,
-                                  ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.lightbulb_outline,
+                                      color: AppColors.blueDark,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        'Complétez votre CV et vos compétences pour améliorer vos chances',
+                                        style: GoogleFonts.roboto(
+                                          fontSize: 13,
+                                          color: AppColors.primaryText,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 16),
-                          TweenAnimationBuilder<double>(
-                            tween: Tween(begin: 0.0, end: 0.75),
-                            duration: const Duration(milliseconds: 1500),
-                            curve: Curves.easeInOut,
-                            builder: (context, value, child) {
-                              return Container(
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: AppColors.surfaceBg,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(4),
-                                  child: LinearProgressIndicator(
-                                    value: value,
-                                    backgroundColor: Colors.transparent,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      AppColors.greenDark,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: AppColors.blueDark.withValues(alpha: 0.05),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: AppColors.blueDark.withValues(
-                                  alpha: 0.1,
-                                ),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.lightbulb_outline,
-                                  color: AppColors.blueDark,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    'Complétez votre CV et vos compétences pour améliorer vos chances',
-                                    style: GoogleFonts.roboto(
-                                      fontSize: 13,
-                                      color: AppColors.primaryText,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
+                    );
+                  },
+                ),
+                // Profile sections
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      _buildProfileSection('Informations personnelles', [
+                        _buildProfileField(
+                          'Nom complet',
+                          _nameController,
+                          Icons.person,
+                        ),
+                        _buildProfileField(
+                          'Email',
+                          _emailController,
+                          Icons.email,
+                        ),
+                        _buildProfileField(
+                          'Téléphone',
+                          _phoneController,
+                          Icons.phone,
+                        ),
+                        _buildLocationField(),
+                      ]),
+                      const SizedBox(height: 20),
+                      _buildProfileSection('À propos', [
+                        _buildProfileField(
+                          'Bio',
+                          _bioController,
+                          Icons.description,
+                          maxLines: 3,
+                        ),
+                      ]),
+                      const SizedBox(height: 20),
+                      _buildStatsSection(),
+                      const SizedBox(height: 20),
+                      _buildActionsSection(),
+                    ],
                   ),
-                );
-              },
+                ),
+              ],
             ),
-            // Profile sections
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  _buildProfileSection('Informations personnelles', [
-                    _buildProfileField(
-                      'Nom complet',
-                      _nameController,
-                      Icons.person,
-                    ),
-                    _buildProfileField('Email', _emailController, Icons.email),
-                    _buildProfileField(
-                      'Téléphone',
-                      _phoneController,
-                      Icons.phone,
-                    ),
-                    _buildLocationField(),
-                  ]),
-                  const SizedBox(height: 20),
-                  _buildProfileSection('À propos', [
-                    _buildProfileField(
-                      'Bio',
-                      _bioController,
-                      Icons.description,
-                      maxLines: 3,
-                    ),
-                  ]),
-                  const SizedBox(height: 20),
-                  _buildStatsSection(),
-                  const SizedBox(height: 20),
-                  _buildActionsSection(),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -753,7 +979,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: AppColors.primaryText,
             ),
           ),
-          const SizedBox(height: 15),
+          const SizedBox(height: 20),
           // Utilisation de Flexible pour éviter l'overflow
           IntrinsicHeight(
             child: Row(
@@ -922,23 +1148,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showCVAndSkillsDialog() {
     Navigator.push(
       context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            _buildCVSkillsPage(),
-        transitionDuration: const Duration(milliseconds: 300),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return SlideTransition(
-            position:
-                Tween<Offset>(
-                  begin: const Offset(1.0, 0.0),
-                  end: Offset.zero,
-                ).animate(
-                  CurvedAnimation(parent: animation, curve: Curves.easeInOut),
-                ),
-            child: child,
-          );
-        },
-      ),
+      MaterialPageRoute(builder: (context) => const CVSkillsScreen()),
     );
   }
 
@@ -2308,7 +2518,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.all(16),
               ),
-              style: GoogleFonts.roboto(fontSize: 16),
+              style: GoogleFonts.roboto(fontSize: 16, color: Colors.black),
               onSubmitted: (value) => _addSkill(),
             ),
           ),
@@ -2527,6 +2737,153 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // Dropdown compact pour éviter les overflows
 
+  // Méthode pour formater le numéro de téléphone
+  String _formatPhoneNumber(String phone) {
+    if (phone.isEmpty) return 'Téléphone non renseigné';
+
+    // Si le numéro commence par 237, ajouter le + et l'espace
+    if (phone.startsWith('237')) {
+      return '+237 ${phone.substring(3)}';
+    }
+    // Si le numéro commence par +237, ajouter l'espace
+    else if (phone.startsWith('+237')) {
+      return '+237 ${phone.substring(4)}';
+    }
+    // Sinon, retourner tel quel
+    return phone;
+  }
+
+  // Méthode pour sauvegarder le profil
+  Future<void> _saveProfile() async {
+    try {
+      print('💾 Sauvegarde du profil...');
+
+      // Extraire le prénom et nom du nom complet
+      String fullName = _nameController.text.trim();
+      String firstName = '';
+      String lastName = '';
+
+      if (fullName.isNotEmpty) {
+        List<String> nameParts = fullName.split(' ');
+        firstName = nameParts[0];
+        if (nameParts.length > 1) {
+          lastName = nameParts.sublist(1).join(' ');
+        }
+      }
+
+      // Mettre à jour les informations utilisateur
+      String phoneValue = _phoneController.text.trim();
+      print('📞 Téléphone à sauvegarder: "$phoneValue"');
+
+      final userResult = await _authService.updateUserInfo(
+        firstName: firstName.isNotEmpty ? firstName : null,
+        lastName: lastName.isNotEmpty ? lastName : null,
+        phone: phoneValue.isNotEmpty ? phoneValue : null,
+      );
+
+      if (userResult['success']) {
+        print('✅ Informations utilisateur mises à jour');
+      } else {
+        print('❌ Erreur mise à jour utilisateur: ${userResult['message']}');
+      }
+
+      // Mettre à jour le profil candidat
+      final profileResult = await _authService.updateCandidateProfile(
+        bio: _bioController.text.trim().isNotEmpty
+            ? _bioController.text.trim()
+            : null,
+        location: selectedLocation != 'Yaoundé' ? selectedLocation : null,
+      );
+
+      if (profileResult['success']) {
+        print('✅ Profil candidat mis à jour');
+      } else {
+        print('❌ Erreur mise à jour profil: ${profileResult['message']}');
+      }
+
+      // Désactiver le mode édition
+      setState(() {
+        isEditing = false;
+      });
+
+      // Recharger les données pour s'assurer que tout est synchronisé
+      await _loadUserData();
+
+      // Afficher un message de succès
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Profil mis à jour avec succès !',
+              style: GoogleFonts.roboto(),
+            ),
+            backgroundColor: AppColors.greenDark,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      print('💥 Erreur sauvegarde profil: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Erreur lors de la sauvegarde: ${e.toString()}',
+              style: GoogleFonts.roboto(),
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  // Méthode pour uploader la photo de profil
+  Future<void> _uploadProfilePhoto(File photoFile) async {
+    try {
+      print('📸 Upload de la photo de profil...');
+      final result = await _authService.uploadProfilePhoto(photoFile);
+
+      if (result['success']) {
+        print('✅ Photo uploadée avec succès: ${result['photo_url']}');
+        setState(() {
+          _profileImageUrl = result['photo_url'];
+          // Garder aussi la référence locale pour l'affichage immédiat
+          _profileImage = photoFile;
+        });
+      } else {
+        print('❌ Erreur upload photo: ${result['message']}');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Erreur lors de l\'upload: ${result['message']}',
+                style: GoogleFonts.roboto(),
+              ),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('💥 Erreur upload photo: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Erreur de connexion lors de l\'upload',
+              style: GoogleFonts.roboto(),
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   // Méthode pour afficher les options de photo de profil
   void _showImagePickerOptions() {
     showModalBottomSheet(
@@ -2656,6 +3013,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _profileImage = File(image.path);
         });
 
+        // Uploader la photo vers le backend
+        await _uploadProfilePhoto(File(image.path));
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -2699,6 +3059,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           _profileImage = File(image.path);
         });
+
+        // Uploader la photo vers le backend
+        await _uploadProfilePhoto(File(image.path));
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -3564,41 +3927,89 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // Méthode de sauvegarde avec feedback HTML
-  void _saveHTMLProfile() {
-    if (uploadedCVs.isEmpty && skills.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Veuillez ajouter au moins un CV ou des compétences.',
-            style: GoogleFonts.roboto(fontWeight: FontWeight.w500),
-          ),
-          backgroundColor: const Color(0xFFdc3545),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-      );
-      return;
-    }
+  Future<void> _saveHTMLProfile() async {
+    setState(() {
+      isLoading = true;
+    });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle, color: Colors.white),
-            const SizedBox(width: 12),
-            Text(
-              'Profil sauvegardé avec succès! 🎉',
+    try {
+      // Séparer le nom complet en prénom et nom
+      final nameParts = _nameController.text.trim().split(' ');
+      final firstName = nameParts.isNotEmpty ? nameParts[0] : '';
+      final lastName = nameParts.length > 1
+          ? nameParts.sublist(1).join(' ')
+          : '';
+
+      // Mettre à jour les informations utilisateur de base
+      final userResult = await _authService.updateUserInfo(
+        firstName: firstName,
+        lastName: lastName,
+        phone: _phoneController.text.trim(),
+      );
+
+      if (!userResult['success']) {
+        throw Exception(userResult['message']);
+      }
+
+      // Mettre à jour le profil candidat
+      final profileResult = await _authService.updateCandidateProfile(
+        bio: _bioController.text.trim(),
+        location: selectedLocation,
+        skills: skills.join(', '),
+      );
+
+      if (!profileResult['success']) {
+        throw Exception(profileResult['message']);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                Text(
+                  'Profil sauvegardé avec succès! 🎉',
+                  style: GoogleFonts.roboto(fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF28a745),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+
+        setState(() {
+          isEditing = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Erreur lors de la sauvegarde: ${e.toString()}',
               style: GoogleFonts.roboto(fontWeight: FontWeight.w500),
             ),
-          ],
-        ),
-        backgroundColor: const Color(0xFF28a745),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
+            backgroundColor: const Color(0xFFdc3545),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
   }
 
   // Upload simplifié comme dans HTML (méthode existante utilisée)

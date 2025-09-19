@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'loginscreen.dart';
 import 'services/auth_service.dart';
+import 'theme/theme_provider.dart';
 
 class JobstageSignupScreen extends StatefulWidget {
   const JobstageSignupScreen({super.key});
@@ -10,7 +12,6 @@ class JobstageSignupScreen extends StatefulWidget {
 }
 
 class _JobstageSignupScreenState extends State<JobstageSignupScreen> {
-  final _formKey = GlobalKey<FormState>();
   final _companyNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _nuiController = TextEditingController();
@@ -57,22 +58,18 @@ class _JobstageSignupScreenState extends State<JobstageSignupScreen> {
 
     try {
       final result = await _authService.register(
-        username: _companyNameController.text.trim(),
-        email: _emailController.text.trim(),
-        phone: _phoneController.text.trim(),
+        username: _companyNameController.text,
+        email: _emailController.text,
+        phone: _phoneController.text,
         password: _passwordController.text,
         passwordConfirm: _confirmPasswordController.text,
         userType: 'recruteur',
       );
 
-      if (result['success']) {
+      if (result['success'] == true) {
         if (mounted) {
-          _showSuccessDialog(
-            'Inscription réussie ! Vous pouvez maintenant vous connecter.',
-          );
-          // Naviguer vers l'écran de connexion
-          Navigator.pushReplacement(
-            context,
+          _showSuccessDialog('Inscription réussie !');
+          Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => const JobstageLoginScreen(),
             ),
@@ -134,243 +131,263 @@ class _JobstageSignupScreenState extends State<JobstageSignupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color(0xFFF5F5F5),
-      resizeToAvoidBottomInset: true,
-      body: SingleChildScrollView(
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        child: Column(
-          children: [
-            // Header with logo
-            Padding(
-              padding: EdgeInsets.only(top: 30, bottom: 0),
-              child: Image.asset(
-                'assets/images/jobstage_logo.png',
-                width: 400,
-                height: 150,
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) {
-                  return Text(
-                    'Jobstage',
-                    style: TextStyle(
-                      fontSize: 50,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            // Main content
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Title
-                    Center(
-                      child: Text(
-                        'Sign up',
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return Scaffold(
+          backgroundColor: themeProvider.isDarkMode
+              ? Colors.grey[900]
+              : Color(0xFFF5F5F5),
+          resizeToAvoidBottomInset: true,
+          body: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            child: Column(
+              children: [
+                // Header with logo
+                Padding(
+                  padding: EdgeInsets.only(top: 30, bottom: 0),
+                  child: Image.asset(
+                    'assets/images/jobstage_logo.png',
+                    width: 400,
+                    height: 150,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Text(
+                        'Jobstage',
                         style: TextStyle(
-                          fontSize: 28,
+                          fontSize: 50,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF303F9F),
+                          color: themeProvider.isDarkMode
+                              ? Colors.white
+                              : Colors.black,
                         ),
-                      ),
-                    ),
+                      );
+                    },
+                  ),
+                ),
 
-                    SizedBox(height: 8),
+                // Main content
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 25),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 3),
 
-                    // Subtitle
-                    Center(
-                      child: Text(
-                        'creez votre compte entreprise',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Color(0xFF757575),
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: 0),
-
-                    // NUI
-                    _buildFormField(
-                      label: 'NUI*',
-                      hintText: 'Numéro d\'identification unique',
-                      controller: _nuiController,
-                      keyboardType: TextInputType.text,
-                    ),
-
-                    SizedBox(height: 12),
-
-                    // Company Name
-                    _buildFormField(
-                      label: 'Nom de l\'entreprise*',
-                      hintText: 'Nom de votre entreprise',
-                      controller: _companyNameController,
-                    ),
-
-                    SizedBox(height: 12),
-
-                    // Professional Email
-                    _buildFormField(
-                      label: 'Email professionnel*',
-                      hintText: 'nom@entreprise.com',
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                    ),
-
-                    SizedBox(height: 12),
-
-                    // Phone
-                    _buildFormField(
-                      label: 'Téléphone*',
-                      hintText: '+237 6XX XX XX XX',
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                    ),
-
-                    SizedBox(height: 12),
-
-                    // Sector of Activity
-                    _buildDropdownField(
-                      label: 'Secteur d\'activite*',
-                      hintText: 'selectionner',
-                      value: _selectedSector,
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedSector = value!;
-                        });
-                      },
-                    ),
-
-                    SizedBox(height: 12),
-
-                    // Website
-                    _buildFormField(
-                      label: 'Site web',
-                      hintText: 'https://www.entreprise.com',
-                      controller: _websiteController,
-                      keyboardType: TextInputType.url,
-                    ),
-
-                    SizedBox(height: 12),
-
-                    // Company Address
-                    _buildFormField(
-                      label: 'Adresse de l\'entreprise*',
-                      hintText: 'Adresse complete de votre entreprise...',
-                      controller: _addressController,
-                      maxLines: 3,
-                    ),
-
-                    SizedBox(height: 12),
-
-                    // Password
-                    _buildPasswordField(
-                      label: 'Mot de passe*',
-                      hintText: '8+ caracteres',
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      onToggle: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
-                    ),
-
-                    SizedBox(height: 12),
-
-                    // Confirm Password
-                    _buildPasswordField(
-                      label: 'confirmer le mot de passe *',
-                      hintText: 'Confirmer le mot de passe',
-                      controller: _confirmPasswordController,
-                      obscureText: _obscureConfirmPassword,
-                      onToggle: () {
-                        setState(() {
-                          _obscureConfirmPassword = !_obscureConfirmPassword;
-                        });
-                      },
-                    ),
-
-                    SizedBox(height: 20),
-
-                    // Terms and Conditions Checkbox
-                    _buildCheckbox(
-                      value: _acceptTerms,
-                      onChanged: (value) {
-                        setState(() {
-                          _acceptTerms = value!;
-                        });
-                      },
-                      text: 'j\'accepte les ',
-                      linkText1: 'conditions d\'utilisation',
-                      middleText: ' et la ',
-                      linkText2: 'politique de confidentialite',
-                      endText: ' de JOBSTAGE',
-                    ),
-
-                    SizedBox(height: 15),
-
-                    // CENADI Certification Checkbox
-                    _buildCheckbox(
-                      value: _cenadiCertification,
-                      onChanged: (value) {
-                        setState(() {
-                          _cenadiCertification = value!;
-                        });
-                      },
-                      text:
-                          'Je certifie que mon entreprise respecte les criteres et exigences du CENADI',
-                    ),
-
-                    SizedBox(height: 20),
-
-                    // Register Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _register,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF4CAF50),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(25),
+                      // Title
+                      Center(
+                        child: Text(
+                          'Sign up',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: themeProvider.isDarkMode
+                                ? Colors.white
+                                : Color(0xFF303F9F),
                           ),
                         ),
-                        child: _isLoading
-                            ? SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Text(
-                                'ENREGISTRER',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
                       ),
-                    ),
 
-                    SizedBox(height: 30),
-                  ],
+                      SizedBox(height: 8),
+
+                      // Subtitle
+                      Center(
+                        child: Text(
+                          'creez votre compte entreprise',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: themeProvider.isDarkMode
+                                ? Colors.grey[400]
+                                : Color(0xFF757575),
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(height: 0),
+
+                      // NUI
+                      _buildFormField(
+                        label: 'NUI*',
+                        hintText: 'Numéro d\'identification unique',
+                        controller: _nuiController,
+                        themeProvider: themeProvider,
+                      ),
+
+                      SizedBox(height: 11),
+
+                      // Company Name
+                      _buildFormField(
+                        label: 'Nom de l\'entreprise*',
+                        hintText: 'Nom de votre entreprise',
+                        controller: _companyNameController,
+                        themeProvider: themeProvider,
+                      ),
+
+                      SizedBox(height: 11),
+
+                      // Email
+                      _buildFormField(
+                        label: 'Email*',
+                        hintText: 'contact@entreprise.com',
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        themeProvider: themeProvider,
+                      ),
+
+                      SizedBox(height: 11),
+
+                      // Phone
+                      _buildFormField(
+                        label: 'Téléphone*',
+                        hintText: '+237 6XX XX XX XX',
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        themeProvider: themeProvider,
+                      ),
+
+                      SizedBox(height: 11),
+
+                      // Website
+                      _buildFormField(
+                        label: 'Site web',
+                        hintText: 'https://www.entreprise.com',
+                        controller: _websiteController,
+                        keyboardType: TextInputType.url,
+                        themeProvider: themeProvider,
+                      ),
+
+                      SizedBox(height: 11),
+
+                      // Address
+                      _buildFormField(
+                        label: 'Adresse*',
+                        hintText: 'Adresse complète de l\'entreprise',
+                        controller: _addressController,
+                        maxLines: 2,
+                        themeProvider: themeProvider,
+                      ),
+
+                      SizedBox(height: 11),
+
+                      // Sector
+                      _buildDropdownField(
+                        label: 'Secteur d\'activité*',
+                        hintText: 'Sélectionnez votre secteur',
+                        value: _selectedSector,
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedSector = value ?? '';
+                          });
+                        },
+                        themeProvider: themeProvider,
+                      ),
+
+                      SizedBox(height: 11),
+
+                      // Password
+                      _buildPasswordField(
+                        label: 'Mot de passe*',
+                        hintText: '8+ caractères',
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        onToggle: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                        themeProvider: themeProvider,
+                      ),
+
+                      SizedBox(height: 11),
+
+                      // Confirm Password
+                      _buildPasswordField(
+                        label: 'Confirmer le mot de passe*',
+                        hintText: 'Confirmer le mot de passe',
+                        controller: _confirmPasswordController,
+                        obscureText: _obscureConfirmPassword,
+                        onToggle: () {
+                          setState(() {
+                            _obscureConfirmPassword = !_obscureConfirmPassword;
+                          });
+                        },
+                        themeProvider: themeProvider,
+                      ),
+
+                      SizedBox(height: 14),
+
+                      // Terms and conditions
+                      _buildCheckbox(
+                        value: _acceptTerms,
+                        onChanged: (value) {
+                          setState(() {
+                            _acceptTerms = value ?? false;
+                          });
+                        },
+                        text: "j'accepte les ",
+                        linkText1: "conditions d'utilisation",
+                        middleText: " et la ",
+                        linkText2: "politique de confidentialité",
+                        endText: " de JOBSTAGE",
+                        themeProvider: themeProvider,
+                      ),
+
+                      SizedBox(height: 9),
+
+                      // CENADI Certification
+                      _buildCheckbox(
+                        value: _cenadiCertification,
+                        onChanged: (value) {
+                          setState(() {
+                            _cenadiCertification = value ?? false;
+                          });
+                        },
+                        text: "J'ai une certification CENADI",
+                        themeProvider: themeProvider,
+                      ),
+
+                      SizedBox(height: 9),
+
+                      // Register button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _register,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFF69F0AE),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(26),
+                            ),
+                          ),
+                          child: _isLoading
+                              ? SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(
+                                  'ENREGISTRER',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                        ),
+                      ),
+
+                      SizedBox(height: 30),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -380,6 +397,7 @@ class _JobstageSignupScreenState extends State<JobstageSignupScreen> {
     required TextEditingController controller,
     TextInputType? keyboardType,
     int maxLines = 1,
+    required ThemeProvider themeProvider,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -395,21 +413,33 @@ class _JobstageSignupScreenState extends State<JobstageSignupScreen> {
         SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Color(0xFFE0E0E0)),
+            border: Border.all(
+              color: themeProvider.isDarkMode
+                  ? Colors.grey[600]!
+                  : Color(0xFFE0E0E0),
+            ),
           ),
           child: TextField(
             controller: controller,
             keyboardType: keyboardType,
             maxLines: maxLines,
-            style: TextStyle(fontSize: 16),
+            style: TextStyle(
+              fontSize: 16,
+              color: themeProvider.isDarkMode ? Colors.white : Colors.black,
+            ),
             textInputAction: maxLines > 1
                 ? TextInputAction.newline
                 : TextInputAction.next,
             decoration: InputDecoration(
               hintText: hintText,
-              hintStyle: TextStyle(color: Color(0xFF9E9E9E), fontSize: 15),
+              hintStyle: TextStyle(
+                color: themeProvider.isDarkMode
+                    ? Colors.grey[400]
+                    : Color(0xFF9E9E9E),
+                fontSize: 15,
+              ),
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 16,
@@ -428,6 +458,7 @@ class _JobstageSignupScreenState extends State<JobstageSignupScreen> {
     required TextEditingController controller,
     required bool obscureText,
     required VoidCallback onToggle,
+    required ThemeProvider themeProvider,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -443,18 +474,30 @@ class _JobstageSignupScreenState extends State<JobstageSignupScreen> {
         SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Color(0xFFE0E0E0)),
+            border: Border.all(
+              color: themeProvider.isDarkMode
+                  ? Colors.grey[600]!
+                  : Color(0xFFE0E0E0),
+            ),
           ),
           child: TextField(
             controller: controller,
             obscureText: obscureText,
-            style: TextStyle(fontSize: 16),
+            style: TextStyle(
+              fontSize: 16,
+              color: themeProvider.isDarkMode ? Colors.white : Colors.black,
+            ),
             textInputAction: TextInputAction.next,
             decoration: InputDecoration(
               hintText: hintText,
-              hintStyle: TextStyle(color: Color(0xFF9E9E9E), fontSize: 15),
+              hintStyle: TextStyle(
+                color: themeProvider.isDarkMode
+                    ? Colors.grey[400]
+                    : Color(0xFF9E9E9E),
+                fontSize: 15,
+              ),
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 16,
@@ -462,9 +505,8 @@ class _JobstageSignupScreenState extends State<JobstageSignupScreen> {
               ),
               suffixIcon: IconButton(
                 icon: Icon(
-                  obscureText ? Icons.visibility : Icons.visibility_off,
+                  obscureText ? Icons.visibility_off : Icons.visibility,
                   color: Color(0xFF757575),
-                  size: 20,
                 ),
                 onPressed: onToggle,
               ),
@@ -480,6 +522,7 @@ class _JobstageSignupScreenState extends State<JobstageSignupScreen> {
     required String hintText,
     required String value,
     required ValueChanged<String?> onChanged,
+    required ThemeProvider themeProvider,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -495,16 +538,29 @@ class _JobstageSignupScreenState extends State<JobstageSignupScreen> {
         SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Color(0xFFE0E0E0)),
+            border: Border.all(
+              color: themeProvider.isDarkMode
+                  ? Colors.grey[600]!
+                  : Color(0xFFE0E0E0),
+            ),
           ),
           child: DropdownButtonFormField<String>(
             initialValue: value.isEmpty ? null : value,
             onChanged: onChanged,
+            style: TextStyle(
+              color: themeProvider.isDarkMode ? Colors.white : Colors.black,
+              fontSize: 16,
+            ),
             decoration: InputDecoration(
               hintText: hintText,
-              hintStyle: TextStyle(color: Color(0xFF9E9E9E), fontSize: 15),
+              hintStyle: TextStyle(
+                color: themeProvider.isDarkMode
+                    ? Colors.grey[400]
+                    : Color(0xFF9E9E9E),
+                fontSize: 15,
+              ),
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 16,
@@ -524,10 +580,22 @@ class _JobstageSignupScreenState extends State<JobstageSignupScreen> {
                 ].map((String sector) {
                   return DropdownMenuItem<String>(
                     value: sector,
-                    child: Text(sector),
+                    child: Text(
+                      sector,
+                      style: TextStyle(
+                        color: themeProvider.isDarkMode
+                            ? Colors.white
+                            : Colors.black,
+                      ),
+                    ),
                   );
                 }).toList(),
-            icon: Icon(Icons.keyboard_arrow_down, color: Color(0xFF757575)),
+            icon: Icon(
+              Icons.keyboard_arrow_down,
+              color: themeProvider.isDarkMode
+                  ? Colors.grey[400]
+                  : Color(0xFF757575),
+            ),
           ),
         ),
       ],
@@ -542,6 +610,7 @@ class _JobstageSignupScreenState extends State<JobstageSignupScreen> {
     String? middleText,
     String? linkText2,
     String? endText,
+    required ThemeProvider themeProvider,
   }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -550,11 +619,26 @@ class _JobstageSignupScreenState extends State<JobstageSignupScreen> {
           value: value,
           onChanged: onChanged,
           activeColor: Color(0xFF2196F3),
+          checkColor: Colors.white,
+          fillColor: MaterialStateProperty.resolveWith<Color>((
+            Set<MaterialState> states,
+          ) {
+            if (states.contains(MaterialState.selected)) {
+              return Color(0xFF2196F3);
+            }
+            return Colors.transparent;
+          }),
+          side: BorderSide(color: Color(0xFF2196F3), width: 2),
         ),
         Expanded(
           child: RichText(
             text: TextSpan(
-              style: TextStyle(color: Color(0xFF757575), fontSize: 14),
+              style: TextStyle(
+                color: themeProvider.isDarkMode
+                    ? Colors.grey[400]
+                    : Color(0xFF757575),
+                fontSize: 14,
+              ),
               children: [
                 TextSpan(text: text),
                 if (linkText1 != null)

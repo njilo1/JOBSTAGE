@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../dashboard_screen.dart';
 import '../theme/theme_provider.dart';
+import '../services/auth_service.dart';
+import '../loginscreen.dart';
 import 'privacy_screen.dart';
 import 'help_center_screen.dart';
 import 'report_problem_screen.dart';
@@ -15,6 +17,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  final AuthService _authService = AuthService();
   bool pushNotifications = true;
   bool emailNotifications = true;
   bool jobAlerts = true;
@@ -493,171 +496,322 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final currentPasswordController = TextEditingController();
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
+    bool isLoading = false;
+    bool obscureCurrentPassword = true;
+    bool obscureNewPassword = true;
+    bool obscureConfirmPassword = true;
 
     showDialog(
       context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.7,
-            maxWidth: MediaQuery.of(context).size.width * 0.9,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: AppColors.blueDark.withValues(alpha: 0.05),
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.blueDark.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.lock_outline,
-                        color: AppColors.blueDark,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Changer le mot de passe',
-                        style: GoogleFonts.roboto(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primaryText,
-                          fontSize: 18,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Content
-              Flexible(
-                child: SingleChildScrollView(
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.7,
+              maxWidth: MediaQuery.of(context).size.width * 0.9,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Container(
                   padding: const EdgeInsets.all(20),
-                  child: Column(
+                  decoration: BoxDecoration(
+                    color: AppColors.blueDark.withValues(alpha: 0.05),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
+                  ),
+                  child: Row(
                     children: [
-                      TextField(
-                        controller: currentPasswordController,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          labelText: 'Mot de passe actuel',
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: AppColors.blueDark,
-                            ),
-                          ),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.blueDark.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.lock_outline,
+                          color: AppColors.blueDark,
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: newPasswordController,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          labelText: 'Nouveau mot de passe',
-                          prefixIcon: const Icon(Icons.lock),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: AppColors.blueDark,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: confirmPasswordController,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          labelText: 'Confirmer le mot de passe',
-                          prefixIcon: const Icon(Icons.lock_reset),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: AppColors.blueDark,
-                            ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Changer le mot de passe',
+                          style: GoogleFonts.roboto(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primaryText,
+                            fontSize: 18,
                           ),
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-              // Actions
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceBg,
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(20),
-                    bottomRight: Radius.circular(20),
+                // Content
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        // Mot de passe actuel
+                        TextField(
+                          controller: currentPasswordController,
+                          obscureText: obscureCurrentPassword,
+                          style: GoogleFonts.roboto(
+                            fontSize: 16,
+                            color: Colors.black,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: 'Mot de passe actuel',
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                obscureCurrentPassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  obscureCurrentPassword =
+                                      !obscureCurrentPassword;
+                                });
+                              },
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                color: AppColors.blueDark,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        // Nouveau mot de passe
+                        TextField(
+                          controller: newPasswordController,
+                          obscureText: obscureNewPassword,
+                          style: GoogleFonts.roboto(
+                            fontSize: 16,
+                            color: Colors.black,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: 'Nouveau mot de passe',
+                            prefixIcon: const Icon(Icons.lock),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                obscureNewPassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  obscureNewPassword = !obscureNewPassword;
+                                });
+                              },
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                color: AppColors.blueDark,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        // Confirmer le mot de passe
+                        TextField(
+                          controller: confirmPasswordController,
+                          obscureText: obscureConfirmPassword,
+                          style: GoogleFonts.roboto(
+                            fontSize: 16,
+                            color: Colors.black,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: 'Confirmer le mot de passe',
+                            prefixIcon: const Icon(Icons.lock_reset),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                obscureConfirmPassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  obscureConfirmPassword =
+                                      !obscureConfirmPassword;
+                                });
+                              },
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                color: AppColors.blueDark,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text(
-                        'Annuler',
-                        style: GoogleFonts.roboto(
-                          color: AppColors.secondaryText,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                // Actions
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceBg,
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(20),
+                      bottomRight: Radius.circular(20),
                     ),
-                    const SizedBox(width: 12),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Mot de passe modifié avec succès'),
-                            backgroundColor: AppColors.greenDark,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: isLoading
+                            ? null
+                            : () => Navigator.pop(context),
+                        child: Text(
+                          'Annuler',
+                          style: GoogleFonts.roboto(
+                            color: AppColors.secondaryText,
+                            fontWeight: FontWeight.w600,
                           ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.blueDark,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: Text(
-                        'Modifier',
-                        style: GoogleFonts.roboto(fontWeight: FontWeight.w600),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: isLoading
+                            ? null
+                            : () => _changePassword(
+                                currentPasswordController.text,
+                                newPasswordController.text,
+                                confirmPasswordController.text,
+                                setState,
+                                () => setState(() => isLoading = true),
+                                () => setState(() => isLoading = false),
+                              ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.blueDark,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                'Modifier',
+                                style: GoogleFonts.roboto(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  // Méthode pour changer le mot de passe
+  Future<void> _changePassword(
+    String currentPassword,
+    String newPassword,
+    String confirmPassword,
+    StateSetter setState,
+    VoidCallback setLoading,
+    VoidCallback setNotLoading,
+  ) async {
+    // Validation côté client
+    if (currentPassword.isEmpty) {
+      _showErrorSnackBar('Veuillez entrer votre mot de passe actuel');
+      return;
+    }
+
+    if (newPassword.isEmpty) {
+      _showErrorSnackBar('Veuillez entrer un nouveau mot de passe');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      _showErrorSnackBar(
+        'Le nouveau mot de passe doit contenir au moins 8 caractères',
+      );
+      return;
+    }
+
+    if (newPassword != confirmPassword) {
+      _showErrorSnackBar('Les mots de passe ne correspondent pas');
+      return;
+    }
+
+    setLoading();
+
+    try {
+      final result = await _authService.changePassword(
+        oldPassword: currentPassword,
+        newPassword: newPassword,
+        newPasswordConfirm: confirmPassword,
+      );
+
+      if (result['success']) {
+        Navigator.pop(context);
+        _showSuccessSnackBar('Mot de passe modifié avec succès');
+      } else {
+        _showErrorSnackBar(
+          result['message'] ?? 'Erreur lors du changement de mot de passe',
+        );
+      }
+    } catch (e) {
+      _showErrorSnackBar('Erreur: ${e.toString()}');
+    } finally {
+      setNotLoading();
+    }
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.greenDark,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: const Color(0xFFdc3545),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -686,6 +840,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             TextField(
               controller: messageController,
               maxLines: 4,
+              style: GoogleFonts.roboto(fontSize: 16, color: Colors.black),
               decoration: const InputDecoration(
                 hintText: 'Votre message...',
                 border: OutlineInputBorder(),
@@ -756,15 +911,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              // In a real app, this would handle logout logic
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Déconnexion réussie'),
-                  backgroundColor: AppColors.greenDark,
-                ),
-              );
+              await _performLogout();
             },
             child: Text(
               'Se déconnecter',
@@ -808,5 +957,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _performLogout() async {
+    try {
+      // Appeler la méthode de déconnexion du service d'authentification
+      await _authService.logout();
+
+      // Afficher un message de succès
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Déconnexion réussie'),
+          backgroundColor: AppColors.greenDark,
+        ),
+      );
+
+      // Rediriger vers l'écran de connexion
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const JobstageLoginScreen()),
+        (route) => false,
+      );
+    } catch (e) {
+      // En cas d'erreur, afficher un message d'erreur
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur lors de la déconnexion: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }

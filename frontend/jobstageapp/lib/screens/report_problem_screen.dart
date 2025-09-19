@@ -94,7 +94,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            
+
             // Category Selection
             Text(
               'Type de problème',
@@ -120,7 +120,10 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 child: DropdownButton<String>(
                   value: selectedCategory,
                   isExpanded: true,
-                  icon: const Icon(Icons.arrow_drop_down, color: AppColors.blueDark),
+                  icon: const Icon(
+                    Icons.arrow_drop_down,
+                    color: AppColors.blueDark,
+                  ),
                   style: GoogleFonts.roboto(
                     fontSize: 16,
                     color: AppColors.primaryText,
@@ -150,7 +153,7 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            
+
             // Description
             Text(
               'Description du problème',
@@ -174,8 +177,10 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
               child: TextField(
                 controller: reportController,
                 maxLines: 5,
+                style: GoogleFonts.roboto(fontSize: 16, color: Colors.black),
                 decoration: InputDecoration(
-                  hintText: 'Décrivez le problème en détail...\n\nExemple :\n- Quand le problème se produit-il ?\n- Que faisiez-vous quand c\'est arrivé ?\n- Pouvez-vous reproduire le problème ?',
+                  hintText:
+                      'Décrivez le problème en détail...\n\nExemple :\n- Quand le problème se produit-il ?\n- Que faisiez-vous quand c\'est arrivé ?\n- Pouvez-vous reproduire le problème ?',
                   hintStyle: GoogleFonts.roboto(
                     fontSize: 14,
                     color: AppColors.secondaryText,
@@ -184,15 +189,10 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.all(16),
                 ),
-                style: GoogleFonts.roboto(
-                  fontSize: 14,
-                  color: AppColors.primaryText,
-                  height: 1.4,
-                ),
               ),
             ),
             const SizedBox(height: 32),
-            
+
             // Submit Button
             SizedBox(
               width: double.infinity,

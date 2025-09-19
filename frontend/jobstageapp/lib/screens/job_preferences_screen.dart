@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/auth_service.dart';
+import '../models/candidate_profile.dart';
 
 class JobPreferencesScreen extends StatefulWidget {
   const JobPreferencesScreen({super.key});
@@ -9,17 +11,141 @@ class JobPreferencesScreen extends StatefulWidget {
 }
 
 class _JobPreferencesScreenState extends State<JobPreferencesScreen> {
+  // Service d'authentification
+  final AuthService _authService = AuthService();
+  bool _isLoading = false;
+
   // États des préférences
   String selectedJobType = 'Temps plein';
   String selectedExperienceLevel = 'Intermédiaire (3-5 ans)';
-  String selectedSalaryRange = '200 000 - 400 000 FCFA';
+  String selectedSalaryRange = 'Rien';
   String selectedWorkLocation = 'Yaoundé';
   bool remoteWork = false;
+  List<String> selectedIndustries = [];
 
   // Contrôleur pour le champ personnalisé
   final TextEditingController _customJobTypeController =
       TextEditingController();
   bool _showCustomJobType = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadJobPreferences();
+  }
+
+  // Méthode pour formater les salaires avec des espaces
+  String _formatSalary(int salary) {
+    final salaryStr = salary.toString();
+    if (salaryStr.length <= 3) {
+      return salaryStr;
+    }
+
+    // Ajouter des espaces tous les 3 chiffres en partant de la fin
+    final reversed = salaryStr.split('').reversed.join('');
+    final chunks = <String>[];
+    for (int i = 0; i < reversed.length; i += 3) {
+      chunks.add(reversed.substring(i, (i + 3).clamp(0, reversed.length)));
+    }
+    return chunks.join(' ').split('').reversed.join('');
+  }
+
+  Future<void> _loadJobPreferences() async {
+    try {
+      print('🔄 Chargement des préférences d\'emploi...');
+      final result = await _authService.getProfile();
+      if (result['success'] == true && result['profile'] != null) {
+        final profile = result['profile'] as CandidateProfile;
+        print('📊 Données du profil reçues:');
+        print('  - preferredJobType: ${profile.preferredJobType}');
+        print('  - experienceLevel: ${profile.experienceLevel}');
+        print('  - salaryRangeMin: ${profile.salaryRangeMin}');
+        print('  - salaryRangeMax: ${profile.salaryRangeMax}');
+        print('  - preferredWorkLocation: ${profile.preferredWorkLocation}');
+        print('  - remoteWork: ${profile.remoteWork}');
+        print('  - preferredIndustries: ${profile.preferredIndustries}');
+
+        // Options disponibles pour validation
+        final jobTypeOptions = [
+          'Temps plein',
+          'Temps partiel',
+          'Freelance',
+          'Stage',
+          'Contrat',
+          'Autre',
+        ];
+
+        final experienceOptions = [
+          'Débutant (0-1 an)',
+          'Junior (1-3 ans)',
+          'Intermédiaire (3-5 ans)',
+          'Senior (5+ ans)',
+        ];
+
+        final salaryOptions = [
+          'Rien',
+          '100 000 - 200 000 FCFA',
+          '200 000 - 400 000 FCFA',
+          '400 000 - 600 000 FCFA',
+          '600 000 - 1 000 000 FCFA',
+          'Plus de 1 000 000 FCFA',
+        ];
+
+        setState(() {
+          // Valider et assigner le type d'emploi
+          selectedJobType = jobTypeOptions.contains(profile.preferredJobType)
+              ? profile.preferredJobType!
+              : 'Temps plein';
+
+          // Valider et assigner le niveau d'expérience
+          selectedExperienceLevel =
+              experienceOptions.contains(profile.experienceLevel)
+              ? profile.experienceLevel!
+              : 'Intermédiaire (3-5 ans)';
+
+          // Valider et assigner la localisation
+          selectedWorkLocation = profile.preferredWorkLocation ?? 'Yaoundé';
+          remoteWork = profile.remoteWork ?? false;
+
+          // Gérer la plage de salaire
+          if (profile.salaryRangeMin != null &&
+              profile.salaryRangeMax != null) {
+            // Formater les nombres avec des espaces pour correspondre aux options
+            final formattedMin = _formatSalary(profile.salaryRangeMin!);
+            final formattedMax = _formatSalary(profile.salaryRangeMax!);
+            final salaryRange = '$formattedMin - $formattedMax FCFA';
+
+            selectedSalaryRange = salaryOptions.contains(salaryRange)
+                ? salaryRange
+                : 'Rien';
+          } else {
+            selectedSalaryRange = 'Rien';
+          }
+
+          // Gérer les industries
+          if (profile.preferredIndustries != null &&
+              profile.preferredIndustries!.isNotEmpty) {
+            selectedIndustries = profile.preferredIndustries!
+                .split(',')
+                .map((e) => e.trim())
+                .toList();
+          }
+        });
+
+        print('✅ Préférences chargées:');
+        print('  - selectedJobType: $selectedJobType');
+        print('  - selectedExperienceLevel: $selectedExperienceLevel');
+        print('  - selectedSalaryRange: $selectedSalaryRange');
+        print('  - selectedWorkLocation: $selectedWorkLocation');
+        print('  - remoteWork: $remoteWork');
+        print('  - selectedIndustries: $selectedIndustries');
+      } else {
+        print('❌ Échec du chargement des préférences: ${result['message']}');
+      }
+    } catch (e) {
+      print('❌ Erreur lors du chargement des préférences: $e');
+    }
+  }
 
   // Liste des villes du Cameroun
   final List<String> cameroonCities = [
@@ -168,7 +294,10 @@ class _JobPreferencesScreenState extends State<JobPreferencesScreen> {
                       const SizedBox(height: 8),
                       TextField(
                         controller: _customJobTypeController,
-                        style: GoogleFonts.roboto(fontSize: 14),
+                        style: GoogleFonts.roboto(
+                          fontSize: 14,
+                          color: Colors.black,
+                        ),
                         decoration: InputDecoration(
                           hintText: 'Précisez le type d\'emploi',
                           hintStyle: GoogleFonts.roboto(
@@ -232,6 +361,7 @@ class _JobPreferencesScreenState extends State<JobPreferencesScreen> {
                 child: _buildCompactDropdown(
                   selectedSalaryRange,
                   [
+                    'Rien',
                     '100 000 - 200 000 FCFA',
                     '200 000 - 400 000 FCFA',
                     '400 000 - 600 000 FCFA',
@@ -283,17 +413,7 @@ class _JobPreferencesScreenState extends State<JobPreferencesScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    // Sauvegarder les préférences
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Préférences sauvegardées !'),
-                        backgroundColor: const Color(0xFF28a745),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                    Navigator.pop(context);
-                  },
+                  onPressed: _isLoading ? null : _saveJobPreferences,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF007bff),
                     foregroundColor: Colors.white,
@@ -302,13 +422,35 @@ class _JobPreferencesScreenState extends State<JobPreferencesScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: Text(
-                    'Sauvegarder les préférences',
-                    style: GoogleFonts.roboto(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                    ),
-                  ),
+                  child: _isLoading
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            ),
+                            SizedBox(width: 12),
+                            Text(
+                              'Sauvegarde...',
+                              style: GoogleFonts.roboto(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        )
+                      : Text(
+                          'Sauvegarder les préférences',
+                          style: GoogleFonts.roboto(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
                 ),
               ),
             ],
@@ -442,5 +584,86 @@ class _JobPreferencesScreenState extends State<JobPreferencesScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _saveJobPreferences() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      print('💾 Sauvegarde des préférences d\'emploi...');
+      print('📊 Données à sauvegarder:');
+      print('  - selectedJobType: $selectedJobType');
+      print('  - selectedExperienceLevel: $selectedExperienceLevel');
+      print('  - selectedSalaryRange: $selectedSalaryRange');
+      print('  - selectedWorkLocation: $selectedWorkLocation');
+      print('  - remoteWork: $remoteWork');
+      print('  - selectedIndustries: $selectedIndustries');
+
+      // Parser la plage de salaire
+      int? salaryMin;
+      int? salaryMax;
+
+      if (selectedSalaryRange != 'Rien') {
+        final parts = selectedSalaryRange.replaceAll(' FCFA', '').split(' - ');
+        if (parts.length == 2) {
+          salaryMin = int.tryParse(parts[0].replaceAll(' ', ''));
+          salaryMax = int.tryParse(parts[1].replaceAll(' ', ''));
+        }
+      }
+
+      // Préparer les industries comme une chaîne séparée par des virgules
+      final industriesString = selectedIndustries.join(', ');
+
+      print('📤 Données parsées pour l\'envoi:');
+      print('  - salaryMin: $salaryMin');
+      print('  - salaryMax: $salaryMax');
+      print('  - industriesString: $industriesString');
+
+      final result = await _authService.updateJobPreferences(
+        preferredJobType: selectedJobType,
+        experienceLevel: selectedExperienceLevel,
+        salaryRangeMin: salaryMin,
+        salaryRangeMax: salaryMax,
+        preferredWorkLocation: selectedWorkLocation,
+        remoteWork: remoteWork,
+        preferredIndustries: industriesString,
+      );
+
+      if (result['success'] == true) {
+        // Recharger les données pour s'assurer qu'elles sont à jour
+        await _loadJobPreferences();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Préférences sauvegardées avec succès !'),
+            backgroundColor: const Color(0xFF28a745),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        Navigator.pop(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Erreur lors de la sauvegarde'),
+            backgroundColor: const Color(0xFFdc3545),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur: ${e.toString()}'),
+          backgroundColor: const Color(0xFFdc3545),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 }

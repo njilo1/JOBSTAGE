@@ -10,7 +10,6 @@ class TrainingScreen extends StatefulWidget {
 }
 
 class _TrainingScreenState extends State<TrainingScreen> {
-
   final List<Map<String, dynamic>> trainings = [
     {
       'title': 'Création de CV avec Canva gratuitement',
@@ -24,8 +23,15 @@ class _TrainingScreenState extends State<TrainingScreen> {
       'isOnline': true,
       'startDate': '13 sep 2025',
       'image': 'assets/images/canva_course.png',
-      'description': 'Apprenez à créer des CV professionnels et attractifs avec Canva',
-      'modules': ['Interface Canva', 'Templates CV', 'Design Principles', 'Export & Print', 'Portfolio Creation'],
+      'description':
+          'Apprenez à créer des CV professionnels et attractifs avec Canva',
+      'modules': [
+        'Interface Canva',
+        'Templates CV',
+        'Design Principles',
+        'Export & Print',
+        'Portfolio Creation',
+      ],
     },
     {
       'title': 'Astuces pour réussir en entretien',
@@ -39,13 +45,19 @@ class _TrainingScreenState extends State<TrainingScreen> {
       'isOnline': true,
       'startDate': '02 sep 2025',
       'image': 'assets/images/interview_tips.png',
-      'description': 'Techniques et stratégies pour exceller lors des entretiens d\'embauche',
-      'modules': ['Préparation entretien', 'Questions fréquentes', 'Langage corporel', 'Négociation salaire', 'Suivi post-entretien'],
+      'description':
+          'Techniques et stratégies pour exceller lors des entretiens d\'embauche',
+      'modules': [
+        'Préparation entretien',
+        'Questions fréquentes',
+        'Langage corporel',
+        'Négociation salaire',
+        'Suivi post-entretien',
+      ],
     },
   ];
 
   final List<Map<String, dynamic>> enrolledCourses = [];
-
 
   @override
   Widget build(BuildContext context) {
@@ -75,6 +87,7 @@ class _TrainingScreenState extends State<TrainingScreen> {
                 borderRadius: BorderRadius.circular(30),
               ),
               child: TextField(
+                style: GoogleFonts.roboto(fontSize: 16, color: Colors.black),
                 decoration: InputDecoration(
                   hintText: 'Rechercher une formation...',
                   hintStyle: GoogleFonts.roboto(
@@ -121,7 +134,9 @@ class _TrainingScreenState extends State<TrainingScreen> {
                         itemBuilder: (context, index) {
                           return Padding(
                             padding: const EdgeInsets.only(right: 15),
-                            child: _buildEnrolledCourseCard(enrolledCourses[index]),
+                            child: _buildEnrolledCourseCard(
+                              enrolledCourses[index],
+                            ),
                           );
                         },
                       ),
@@ -175,12 +190,7 @@ class _TrainingScreenState extends State<TrainingScreen> {
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border(
-          left: BorderSide(
-            color: AppColors.greenDark,
-            width: 5,
-          ),
-        ),
+        border: Border(left: BorderSide(color: AppColors.greenDark, width: 5)),
       ),
       padding: const EdgeInsets.all(15),
       child: Column(
@@ -288,7 +298,10 @@ class _TrainingScreenState extends State<TrainingScreen> {
               height: 160,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [AppColors.formationIconBg, AppColors.formationIconColor],
+                  colors: [
+                    AppColors.formationIconBg,
+                    AppColors.formationIconColor,
+                  ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -298,11 +311,7 @@ class _TrainingScreenState extends State<TrainingScreen> {
                 ),
               ),
               child: Center(
-                child: Icon(
-                  Icons.school,
-                  size: 60,
-                  color: Colors.white,
-                ),
+                child: Icon(Icons.school, size: 60, color: Colors.white),
               ),
             ),
             Padding(
@@ -313,9 +322,14 @@ class _TrainingScreenState extends State<TrainingScreen> {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
-                          color: training['isOnline'] ? AppColors.greenDark : AppColors.orangeDark,
+                          color: training['isOnline']
+                              ? AppColors.greenDark
+                              : AppColors.orangeDark,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -329,7 +343,10 @@ class _TrainingScreenState extends State<TrainingScreen> {
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.blueDark,
                           borderRadius: BorderRadius.circular(8),
@@ -405,7 +422,11 @@ class _TrainingScreenState extends State<TrainingScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.people, color: AppColors.secondaryText, size: 16),
+                            Icon(
+                              Icons.people,
+                              color: AppColors.secondaryText,
+                              size: 16,
+                            ),
                             const SizedBox(width: 4),
                             Flexible(
                               child: Text(
@@ -464,7 +485,10 @@ class _TrainingScreenState extends State<TrainingScreen> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
                           ),
                           child: Text(
                             'S\'inscrire',
@@ -567,22 +591,30 @@ class _TrainingScreenState extends State<TrainingScreen> {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      ...training['modules'].map<Widget>((module) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Row(
-                          children: [
-                            Icon(Icons.check_circle, color: AppColors.greenDark, size: 20),
-                            const SizedBox(width: 10),
-                            Text(
-                              module,
-                              style: GoogleFonts.roboto(
-                                fontSize: 14,
-                                color: AppColors.primaryText,
+                      ...training['modules']
+                          .map<Widget>(
+                            (module) => Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.check_circle,
+                                    color: AppColors.greenDark,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    module,
+                                    style: GoogleFonts.roboto(
+                                      fontSize: 14,
+                                      color: AppColors.primaryText,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
-                      )).toList(),
+                          )
+                          .toList(),
                       const SizedBox(height: 30),
                       SizedBox(
                         width: double.infinity,
@@ -619,7 +651,10 @@ class _TrainingScreenState extends State<TrainingScreen> {
     );
   }
 
-  void _showCourseDetails(Map<String, dynamic> course, {bool isEnrolled = false}) {
+  void _showCourseDetails(
+    Map<String, dynamic> course, {
+    bool isEnrolled = false,
+  }) {
     // Implementation for enrolled course details
   }
 
@@ -636,9 +671,7 @@ class _TrainingScreenState extends State<TrainingScreen> {
         ),
         content: Text(
           'Voulez-vous vous inscrire à "${training['title']}" pour ${training['price']} ?',
-          style: GoogleFonts.roboto(
-            color: AppColors.secondaryText,
-          ),
+          style: GoogleFonts.roboto(color: AppColors.secondaryText),
         ),
         actions: [
           TextButton(
@@ -656,7 +689,9 @@ class _TrainingScreenState extends State<TrainingScreen> {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Inscription réussie ! Vous recevrez un email de confirmation.'),
+                  content: Text(
+                    'Inscription réussie ! Vous recevrez un email de confirmation.',
+                  ),
                   backgroundColor: AppColors.greenDark,
                 ),
               );

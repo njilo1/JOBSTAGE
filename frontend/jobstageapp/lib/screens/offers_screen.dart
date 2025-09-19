@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../dashboard_screen.dart';
+import '../utils/offer_status.dart';
 
 class OffersScreen extends StatefulWidget {
   const OffersScreen({super.key});
@@ -42,6 +43,7 @@ class _OffersScreenState extends State<OffersScreen> {
       'salary': '800,000 - 1,200,000 FCFA',
       'isJob': true,
       'isFavorite': false,
+      'status': 'En cours',
     },
     {
       'title': 'Développeur Flutter Junior',
@@ -53,6 +55,7 @@ class _OffersScreenState extends State<OffersScreen> {
       'salary': '400,000 - 600,000 FCFA',
       'isJob': true,
       'isFavorite': true,
+      'status': 'En pause',
     },
     {
       'title': 'Stage Marketing Digital',
@@ -64,6 +67,7 @@ class _OffersScreenState extends State<OffersScreen> {
       'salary': '150,000 FCFA',
       'isJob': false,
       'isFavorite': false,
+      'status': 'Expirée',
     },
     {
       'title': 'Développeur Web Full-Stack',
@@ -75,6 +79,7 @@ class _OffersScreenState extends State<OffersScreen> {
       'salary': '500,000 - 800,000 FCFA',
       'isJob': true,
       'isFavorite': false,
+      'status': 'En cours',
     },
     {
       'title': 'Stage Data Science',
@@ -86,6 +91,7 @@ class _OffersScreenState extends State<OffersScreen> {
       'salary': '100,000 FCFA',
       'isJob': false,
       'isFavorite': true,
+      'status': 'En pause',
     },
     {
       'title': 'UI/UX Designer',
@@ -97,6 +103,7 @@ class _OffersScreenState extends State<OffersScreen> {
       'salary': '450,000 - 700,000 FCFA',
       'isJob': true,
       'isFavorite': false,
+      'status': 'Expirée',
     },
     {
       'title': 'Développeur Web Freelance',
@@ -108,6 +115,7 @@ class _OffersScreenState extends State<OffersScreen> {
       'salary': '300,000 - 500,000 FCFA',
       'isJob': true,
       'isFavorite': false,
+      'status': 'En cours',
     },
     {
       'title': 'Assistant Marketing',
@@ -119,6 +127,7 @@ class _OffersScreenState extends State<OffersScreen> {
       'salary': '350,000 - 450,000 FCFA',
       'isJob': true,
       'isFavorite': false,
+      'status': 'En pause',
     },
     {
       'title': 'Stage Développement Mobile',
@@ -130,6 +139,7 @@ class _OffersScreenState extends State<OffersScreen> {
       'salary': '150,000 FCFA',
       'isJob': false,
       'isFavorite': false,
+      'status': 'Expirée',
     },
     {
       'title': 'Consultant IT',
@@ -141,6 +151,7 @@ class _OffersScreenState extends State<OffersScreen> {
       'salary': '200,000 - 300,000 FCFA',
       'isJob': true,
       'isFavorite': false,
+      'status': 'En cours',
     },
     {
       'title': 'Stage Académique en Informatique',
@@ -329,6 +340,10 @@ class _OffersScreenState extends State<OffersScreen> {
                     borderRadius: BorderRadius.circular(30),
                   ),
                   child: TextField(
+                    style: GoogleFonts.roboto(
+                      fontSize: 16,
+                      color: Colors.black,
+                    ),
                     decoration: InputDecoration(
                       hintText: 'Rechercher une offre...',
                       hintStyle: GoogleFonts.roboto(
@@ -503,6 +518,10 @@ class _OffersScreenState extends State<OffersScreen> {
                           color: AppColors.primaryText,
                         ),
                       ),
+                      if (offer['status'] != null) ...[
+                        const SizedBox(height: 6),
+                        _buildStatusBadge(offer['status']),
+                      ],
                       const SizedBox(height: 4),
                       Text(
                         offer['company'],
@@ -870,6 +889,46 @@ class _OffersScreenState extends State<OffersScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(String status) {
+    OfferStatus offerStatus;
+    switch (status.toLowerCase()) {
+      case 'en cours':
+      case 'active':
+        offerStatus = OfferStatus.active;
+        break;
+      case 'en pause':
+      case 'paused':
+        offerStatus = OfferStatus.paused;
+        break;
+      case 'expirée':
+      case 'expired':
+        offerStatus = OfferStatus.expired;
+        break;
+      default:
+        offerStatus = OfferStatus.active;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: OfferStatusHelper.getStatusBackgroundColor(offerStatus),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: OfferStatusHelper.getStatusColor(offerStatus),
+          width: 1,
+        ),
+      ),
+      child: Text(
+        OfferStatusHelper.getStatusText(offerStatus),
+        style: GoogleFonts.roboto(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: OfferStatusHelper.getStatusColor(offerStatus),
+        ),
       ),
     );
   }
